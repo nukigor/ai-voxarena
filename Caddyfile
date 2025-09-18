@@ -1,0 +1,3 @@
+voxarena.app, www.voxarena.app {
+    reverse_proxy web:3000
+}

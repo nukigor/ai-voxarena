@@ -1,7 +1,6 @@
-// frontend/app/layout.tsx
 import "./globals.css";
-import SiteHeader from "../components/SiteHeader";
-import SiteFooter from "../components/SiteFooter";
+import SiteNavbar from "@/components/layout/SiteNavbar";
+import SiteFooter from "@/components/SiteFooter";
 
 export const metadata = {
   title: "VoxArena",
@@ -11,8 +10,8 @@ export const metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-white text-zinc-900">
-        <SiteHeader />
+      <body className="min-h-screen bg-white text-zinc-900 antialiased">
+        <SiteNavbar />
         <main className="mx-auto max-w-6xl px-4 py-8">{children}</main>
         <SiteFooter />
       </body>

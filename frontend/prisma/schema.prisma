@@ -1,0 +1,75 @@
+// frontend/prisma/schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Main Persona record: simple fields + arrays/JSON for flexible traits.
+/// Taxonomy-managed links are stored via PersonaTaxonomy (many-to-many).
+model Persona {
+  id              String   @id @default(uuid())
+  name            String
+  ageGroup        String?        // select
+  genderIdentity  String?        // select/free text
+  pronouns        String?
+  profession      String?        // free text job title
+  temperament     String?        // select
+  confidence      Int?           // 1..10
+  verbosity       String?        // Short/Medium/Long (or use number if you prefer)
+  tone            String?        // select
+  accentNote      String?        // free text override
+  quirks          String[]       // text[]
+  vocabularyStyle String?        // select
+  debateApproach  String[]       // multi-select
+  conflictStyle   String?        // select
+  voiceProvider   String?        // select
+  voiceStyle      Json?          // { pitch, speed, gendered }
+  emotionMap      String[]       // multi-select
+  createdAt       DateTime  @default(now())
+
+  // Optional direct FKs for common single-valued taxonomies (nice for simple queries)
+  universityId    String?   @db.Uuid
+  organizationId  String?   @db.Uuid
+  cultureId       String?   @db.Uuid
+
+  taxonomies      PersonaTaxonomy[]
+
+  @@index([universityId])
+  @@index([organizationId])
+  @@index([cultureId])
+}
+
+/// Generic taxonomy table (namespaced by `category`).
+/// Examples:
+/// - category='university', term='Harvard'
+/// - category='organization', term='UNICEF'
+/// - category='culture', term='Western Europe'
+/// - category='archetype', term='Analytical'
+/// - category='political'|'religion'|'philosophy'|'accent'
+
+model Taxonomy {
+  id        String   @id @default(uuid())
+  category  String
+  term      String
+  slug      String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  personas  PersonaTaxonomy[]
+
+  @@unique([category, term], name: "category_term")
+  @@index([category])
+}
+
+model PersonaTaxonomy {
+  personaId  String
+  taxonomyId String
+  persona    Persona  @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  taxonomy   Taxonomy @relation(fields: [taxonomyId], references: [id], onDelete: Cascade)
+
+  @@id([personaId, taxonomyId], name: "personaId_taxonomyId")
+  @@index([taxonomyId])
+}

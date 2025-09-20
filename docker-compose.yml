@@ -24,7 +24,25 @@ services:
       - PORT=3000
     expose:
       - "3000"
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: voxarena_db
+    profiles: ["dev"]          # 👈 only runs when profile=dev is active
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: voxarena
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d voxarena"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 volumes:
   caddy_data:
   caddy_config:
+  db_data:

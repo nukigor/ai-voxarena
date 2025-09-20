@@ -13,17 +13,21 @@ services:
     depends_on:
       - web
 
-  web:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: voxarena-web
-    restart: unless-stopped
-    environment:
-      - NODE_ENV=production
-      - PORT=3000
-    expose:
-      - "3000"
+web:
+  build:
+    context: ./frontend
+    dockerfile: Dockerfile
+  container_name: voxarena-web
+  restart: unless-stopped
+  environment:
+    - NODE_ENV=production
+    - PORT=3000
+    - DATABASE_URL=${DATABASE_URL}    # 👈 add this
+  ports:
+    - "3000:3000"                     # 👈 publish to the host for Caddy
+  # expose:                          # ❌ remove expose; ports replaces it
+  #   - "3000"
+
   db:
     image: pgvector/pgvector:pg16
     container_name: voxarena_db

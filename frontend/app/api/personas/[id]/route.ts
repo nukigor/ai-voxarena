@@ -7,7 +7,7 @@ export async function GET(
 ) {
   const persona = await prisma.persona.findUnique({
     where: { id: params.id },
-    include: { personaTaxonomies: { include: { taxonomy: true } } },
+    include: { Taxonomies: { include: { taxonomy: true } } },
   });
   return NextResponse.json(persona);
 }
@@ -19,4 +19,9 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     data,
   });
   return NextResponse.json(persona);
+}
+
+export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+  await prisma.persona.delete({ where: { id: params.id } });
+  return NextResponse.json({ ok: true });
 }

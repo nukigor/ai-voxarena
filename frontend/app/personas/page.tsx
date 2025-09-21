@@ -1,15 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import type { Persona } from "@prisma/client"; // ✅ Import generated type
 
 export default function PersonasPage() {
-  const [personas, setPersonas] = useState<any[]>([]);
+  const [personas, setPersonas] = useState<Persona[]>([]); // ✅ Strongly typed
   const [name, setName] = useState("");
 
   useEffect(() => {
     fetch("/api/personas")
       .then((res) => res.json())
-      .then(setPersonas);
+      .then((data: Persona[]) => setPersonas(data)); // ✅ Type annotation
   }, []);
 
   async function createPersona() {
@@ -18,7 +19,7 @@ export default function PersonasPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name }),
     });
-    const newPersona = await res.json();
+    const newPersona: Persona = await res.json(); // ✅ Typed response
     setPersonas([...personas, newPersona]);
     setName("");
   }

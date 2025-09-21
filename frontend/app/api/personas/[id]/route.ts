@@ -7,7 +7,7 @@ export async function GET(
 ) {
   const persona = await prisma.persona.findUnique({
     where: { id: params.id },
-    include: { Taxonomies: { include: { taxonomy: true } } },
+    include: { taxonomies: { include: { taxonomy: true } } },
   });
   return NextResponse.json(persona);
 }

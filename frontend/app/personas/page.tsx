@@ -1,8 +1,55 @@
-export default function Personas() {
+"use client";
+
+import { useState, useEffect } from "react";
+
+export default function PersonasPage() {
+  const [personas, setPersonas] = useState<any[]>([]);
+  const [name, setName] = useState("");
+
+  useEffect(() => {
+    fetch("/api/personas")
+      .then((res) => res.json())
+      .then(setPersonas);
+  }, []);
+
+  async function createPersona() {
+    const res = await fetch("/api/personas", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    const newPersona = await res.json();
+    setPersonas([...personas, newPersona]);
+    setName("");
+  }
+
   return (
-    <section className="space-y-3">
-      <h1 className="text-2xl font-semibold">Personas</h1>
-      <p className="text-zinc-600">Manage persona cards here.</p>
-    </section>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">Persona Builder</h1>
+
+      <div className="mb-6">
+        <input
+          type="text"
+          value={name}
+          placeholder="Persona name"
+          onChange={(e) => setName(e.target.value)}
+          className="border px-2 py-1 mr-2"
+        />
+        <button
+          onClick={createPersona}
+          className="bg-blue-600 text-white px-3 py-1 rounded"
+        >
+          Add Persona
+        </button>
+      </div>
+
+      <ul className="space-y-2">
+        {personas.map((p) => (
+          <li key={p.id} className="border p-2 rounded">
+            {p.name}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

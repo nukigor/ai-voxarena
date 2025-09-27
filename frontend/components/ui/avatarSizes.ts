@@ -1,0 +1,1 @@
+export const AVATAR_SIZES = { xs: 24, sm: 32, md: 40, lg: 56, xl: 72 } as const;

@@ -13,13 +13,14 @@ datasource db {
 model Persona {
   id              String   @id @default(uuid())
   name            String
+  nickname        String?        // new: optional nickname
   ageGroup        String?        // select
   genderIdentity  String?        // select/free text
   pronouns        String?
   profession      String?        // free text job title
   temperament     String?        // select
   confidence      Int?           // 1..10
-  verbosity       String?        // Short/Medium/Long (or use number if you prefer)
+  verbosity       String?        // Short/Medium/Long
   tone            String?        // select
   accentNote      String?        // free text override
   quirks          String[]       // text[]
@@ -31,17 +32,20 @@ model Persona {
   emotionMap      String[]       // multi-select
   avatarUrl       String?        // url to AI generated avatar based on persona properties
   createdAt       DateTime  @default(now())
+  updatedAt DateTime @updatedAt @default(now())  // ✅ auto-updated whenever record changes
 
-  // Optional direct FKs for common single-valued taxonomies (nice for simple queries)
+  // Optional direct FKs for common single-valued taxonomies
   universityId    String?   @db.Uuid
   organizationId  String?   @db.Uuid
   cultureId       String?   @db.Uuid
+  communityTypeId String?   @db.Uuid    // ✅ new taxonomy link: community type
 
   taxonomies      PersonaTaxonomy[]
 
   @@index([universityId])
   @@index([organizationId])
   @@index([cultureId])
+  @@index([communityTypeId]) // ✅ index for quick queries
 }
 
 /// Generic taxonomy table (namespaced by `category`).

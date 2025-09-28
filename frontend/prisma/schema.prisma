@@ -34,18 +34,7 @@ model Persona {
   createdAt       DateTime  @default(now())
   updatedAt DateTime @updatedAt @default(now())  // ✅ auto-updated whenever record changes
 
-  // Optional direct FKs for common single-valued taxonomies
-  universityId    String?   @db.Uuid
-  organizationId  String?   @db.Uuid
-  cultureId       String?   @db.Uuid
-  communityTypeId String?   @db.Uuid    // ✅ new taxonomy link: community type
-
   taxonomies      PersonaTaxonomy[]
-
-  @@index([universityId])
-  @@index([organizationId])
-  @@index([cultureId])
-  @@index([communityTypeId]) // ✅ index for quick queries
 }
 
 /// Generic taxonomy table (namespaced by `category`).

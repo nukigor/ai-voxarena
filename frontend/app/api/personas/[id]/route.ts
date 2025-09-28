@@ -2,15 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 function clean<T extends Record<string, any>>(obj: T): Partial<T> {
-  return Object.fromEntries(
-    Object.entries(obj).filter(([, v]) => v !== undefined)
-  ) as Partial<T>;
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined)) as Partial<T>;
 }
 
-export async function GET(
-  _req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const persona = await prisma.persona.findUnique({
     where: { id: params.id },
     include: { taxonomies: { include: { taxonomy: true } } },
@@ -18,46 +13,60 @@ export async function GET(
   return NextResponse.json(persona);
 }
 
-export async function PUT(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(req: Request, { params }: { params: { id: string } }) {
   const id = params.id;
   const body = await req.json();
 
   const {
-    // safe scalars
+    // Scalars
     name,
     nickname,
-    age,
+    ageGroup,
+    genderIdentity,
     pronouns,
     profession,
+    temperament,
     confidence,
+    verbosity,
+    tone,
+    vocabularyStyle,
+    conflictStyle,
+    debateApproach,
     accentNote,
-    quirksText,
 
-    // taxonomy selections
+    // Taxonomies
     universityId,
     organizationId,
     cultureId,
     communityTypeId,
     politicalId,
     religionId,
+    accentId,
+
     archetypeIds = [],
     philosophyIds = [],
     fillerPhraseIds = [],
     metaphorIds = [],
     debateHabitIds = [],
+
+    quirksText,
   } = body ?? {};
 
   const scalarData = clean({
     name,
     nickname,
-    age: typeof age === "number" ? age : undefined,
+    ageGroup,
+    genderIdentity,
     pronouns,
     profession,
-    confidence,
-    accentNote,
+    temperament,
+    confidence: typeof confidence === "number" ? confidence : undefined,
+    verbosity: typeof verbosity === "number" ? verbosity : undefined,
+    tone,
+    vocabularyStyle,
+    conflictStyle,
+    debateApproach: Array.isArray(debateApproach) ? debateApproach : undefined,
+    accentNote: typeof accentNote === "string" ? accentNote : undefined,
     quirks:
       typeof quirksText === "string"
         ? quirksText.trim()
@@ -66,7 +75,6 @@ export async function PUT(
         : undefined,
   });
 
-  // collect taxonomy IDs
   const taxoIds: string[] = [
     ...archetypeIds,
     ...philosophyIds,
@@ -80,6 +88,7 @@ export async function PUT(
   if (communityTypeId) taxoIds.push(communityTypeId);
   if (politicalId) taxoIds.push(politicalId);
   if (religionId) taxoIds.push(religionId);
+  if (accentId) taxoIds.push(accentId);
 
   const persona = await prisma.persona.update({
     where: { id },
@@ -96,10 +105,7 @@ export async function PUT(
   return NextResponse.json(persona);
 }
 
-export async function DELETE(
-  _req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   await prisma.persona.delete({ where: { id: params.id } });
   return NextResponse.json({ ok: true });
 }

@@ -1,0 +1,48 @@
+=== VoxArena Snapshot Manifest ===
+Timestamp (UTC): 2025-09-27T22-38-57Z
+Commit: 64fad0123430178d3efb69944ce627c19efee98a
+Branch: main
+
+Last commit:
+commit 64fad0123430178d3efb69944ce627c19efee98a
+Author:     nukigor <igornuk@igornuk.com>
+AuthorDate: Sat Sep 27 23:39:43 2025 +0200
+Commit:     nukigor <igornuk@igornuk.com>
+CommitDate: Sat Sep 27 23:39:43 2025 +0200
+
+    public repo update
+
+Top-level (depth 2), excluding heavy dirs:
+./.assistant_bundles
+./.DS_Store
+./.git
+./.gitignore
+./Caddyfile
+./docker-compose.yml
+./frontend
+./frontend/.dockerignore
+./frontend/.DS_Store
+./frontend/.env
+./frontend/.env.example
+./frontend/.env.local
+./frontend/.eslintrc.json
+./frontend/.gitignore
+./frontend/.next
+./frontend/app
+./frontend/components
+./frontend/Dockerfile
+./frontend/lib
+./frontend/next-env.d.ts
+./frontend/next.config.mjs
+./frontend/node_modules
+./frontend/package-lock.json
+./frontend/package.json
+./frontend/postcss.config.cjs
+./frontend/prisma
+./frontend/public
+./frontend/tailwind.config.cjs
+./frontend/tsconfig.json
+./html
+./html/index.html
+./scripts
+./scripts/pack-for-assistant.sh

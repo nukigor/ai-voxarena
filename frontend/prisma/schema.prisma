@@ -20,7 +20,7 @@ model Persona {
   profession      String?        // free text job title
   temperament     String?        // select
   confidence      Int?           // 1..10
-  verbosity       String?        // Short/Medium/Long
+  verbosity       Int?           // 1..10 slider
   tone            String?        // select
   accentNote      String?        // free text override
   quirks          String[]       // text[]

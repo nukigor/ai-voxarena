@@ -21,28 +21,45 @@ function buildPayload(raw: Record<string, any>) {
   return {
     ...raw,
 
-    // sliders default to 5
+    // Required sliders default to 5
     confidence: typeof raw.confidence === "number" ? raw.confidence : 5,
     verbosity: typeof raw.verbosity === "number" ? raw.verbosity : 5,
 
-    // multi-selects as arrays
+    // Multi-selects as arrays
     archetypeIds: Array.isArray(raw.archetypeIds) ? raw.archetypeIds : [],
     philosophyIds: Array.isArray(raw.philosophyIds) ? raw.philosophyIds : [],
     fillerPhraseIds: Array.isArray(raw.fillerPhraseIds) ? raw.fillerPhraseIds : [],
     metaphorIds: Array.isArray(raw.metaphorIds) ? raw.metaphorIds : [],
     debateHabitIds: Array.isArray(raw.debateHabitIds) ? raw.debateHabitIds : [],
 
-    // single-selects (nullable)
+    // Debate approach (multi from personaOptions)
+    debateApproach: Array.isArray(raw.debateApproach) ? raw.debateApproach : [],
+
+    // Single-select taxonomy ids
     cultureId: raw.cultureId ?? null,
     communityTypeId: raw.communityTypeId ?? null,
     politicalId: raw.politicalId ?? null,
     religionId: raw.religionId ?? null,
+    universityId: raw.universityId ?? null,
+    organizationId: raw.organizationId ?? null,
 
-    // taxonomy bound by term
+    // Accent: taxonomy id + note (term)
+    accentId: raw.accentId ?? null,
     accentNote: typeof raw.accentNote === "string" ? raw.accentNote : "",
 
-    // free text
+    // Free text
     quirksText: typeof raw.quirksText === "string" ? raw.quirksText : "",
+
+    // Identity & personality scalars (from personaOptions.ts)
+    ageGroup: raw.ageGroup ?? null,
+    genderIdentity: raw.genderIdentity ?? null,
+    pronouns: typeof raw.pronouns === "string" ? raw.pronouns : "",
+    temperament: raw.temperament ?? null,
+
+    // Communication scalars
+    vocabularyStyle: raw.vocabularyStyle ?? null,
+    conflictStyle: raw.conflictStyle ?? null,
+    tone: raw.tone ?? null,
   };
 }
 

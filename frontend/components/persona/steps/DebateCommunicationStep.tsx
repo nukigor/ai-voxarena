@@ -156,17 +156,14 @@ export default function DebateCommunicationStep({
           }
         />
 
-        {/* Accent / Dialect (taxonomy single-select) */}
+        {/* Accent / Dialect (taxonomy single, optional) */}
         <TaxonomySelect
           category="accent"
           label="Accent / Dialect"
           placeholder="Search or select an accent…"
-          valueId={null}
-          valueTerm={data.accentNote ?? ""}
-          onChangeId={() => {}}
-          onChangeTaxo={(item) =>
-            setData((p) => ({ ...p, accentNote: item?.term ?? "" }))
-          }
+          valueId={data.accentId ?? null}                 // ✅ use taxonomy id
+          onChangeId={(id) => setData((p) => ({ ...p, accentId: id }))}  // ✅ store id
+          onChangeTaxo={(item) => setData((p) => ({ ...p, accentNote: item?.term ?? "" }))} // keep readable term
         />
       </section>
     </div>

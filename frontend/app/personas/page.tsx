@@ -60,8 +60,8 @@ function allTerms(p: PersonaWithTax, category: string): string[] {
 }
 
 function shapeRow(p: PersonaWithTax): PersonaRow {
-  const ageTx = firstTerm(p, "ageGroup");
-  const genderTx = firstTerm(p, "genderIdentity");
+  const ageTx = p.ageGroup ?? undefined;
+  const genderTx = p.genderIdentity ?? undefined;
 
   return {
     id: p.id,

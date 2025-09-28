@@ -26,10 +26,10 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       temperament, confidence, verbosity, tone, vocabularyStyle, conflictStyle,
       debateApproach, accentNote, quirksText,
 
-      // Single-select taxonomy ids
+      // Taxonomy singles
       universityId, organizationId, cultureId, communityTypeId, politicalId, religionId, accentId,
 
-      // Multi-select taxonomy ids
+      // Taxonomy multis
       archetypeIds = [], philosophyIds = [], fillerPhraseIds = [], metaphorIds = [], debateHabitIds = [],
     } = body ?? {};
 
@@ -47,11 +47,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     });
 
     const taxoIds: string[] = [
-      ...archetypeIds,
-      ...philosophyIds,
-      ...fillerPhraseIds,
-      ...metaphorIds,
-      ...debateHabitIds,
+      ...archetypeIds, ...philosophyIds, ...fillerPhraseIds, ...metaphorIds, ...debateHabitIds,
     ];
     if (universityId) taxoIds.push(universityId);
     if (organizationId) taxoIds.push(organizationId);
@@ -66,7 +62,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       data: {
         ...scalarData,
         taxonomies: {
-          deleteMany: {}, // replace all links
+          deleteMany: {},                                   // replace links
           create: taxoIds.map((taxonomyId) => ({ taxonomyId })),
         },
       },

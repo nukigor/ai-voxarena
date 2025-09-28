@@ -1,9 +1,6 @@
-// app/personas/[id]/edit/page.tsx
-// If your personas list lives under a route group, move this file accordingly:
-// app/(dashboard)/personas/[id]/edit/page.tsx
-
 import { prisma } from "@/lib/prisma";
 import PersonaWizard from "@/components/persona/PersonaWizard";
+import PageHeader from "@/components/layout/PageHeader";
 import { notFound } from "next/navigation";
 
 function groupTaxo(persona: any) {
@@ -37,11 +34,7 @@ export default async function EditPersonaPage({ params }: { params: { id: string
     where: { id: params.id },
     include: { taxonomies: { include: { taxonomy: true } } },
   });
-
-  if (!persona) {
-    // Show a proper 404 if the ID doesn’t exist
-    notFound();
-  }
+  if (!persona) notFound();
 
   const tax = groupTaxo(persona);
 
@@ -62,13 +55,13 @@ export default async function EditPersonaPage({ params }: { params: { id: string
     debateApproach: persona.debateApproach ?? [],
     accentNote: persona.accentNote ?? "",
     quirksText: Array.isArray(persona.quirks) ? (persona.quirks[0] ?? "") : "",
-    ...tax, // taxonomy ids + arrays
+    ...tax,
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-2xl font-semibold mb-4">Edit Persona</h1>
+    <>
+      <PageHeader title="Edit Persona" />
       <PersonaWizard mode="edit" personaId={persona.id} initialData={initialData} />
-    </div>
+    </>
   );
 }

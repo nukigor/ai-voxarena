@@ -13,45 +13,40 @@ datasource db {
 model Persona {
   id              String   @id @default(uuid())
   name            String
-  nickname        String?        // new: optional nickname
-  ageGroup        String?        // select
-  genderIdentity  String?        // select/free text
+  nickname        String? // new: optional nickname
+  ageGroup        String? // select
+  genderIdentity  String? // select/free text
   pronouns        String?
-  profession      String?        // free text job title
-  temperament     String?        // select
-  confidence      Int?           // 1..10
-  verbosity       Int?           // 1..10 slider
-  tone            String?        // select
-  accentNote      String?        // free text override
-  quirks          String[]       // text[]
-  vocabularyStyle String?        // select
-  debateApproach  String[]       // multi-select
-  conflictStyle   String?        // select
-  voiceProvider   String?        // select
-  voiceStyle      Json?          // { pitch, speed, gendered }
-  emotionMap      String[]       // multi-select
-  avatarUrl       String?        // url to AI generated avatar based on persona properties
-  createdAt       DateTime  @default(now())
-  updatedAt DateTime @updatedAt @default(now())  // ✅ auto-updated whenever record changes
+  profession      String? // free text job title
+  temperament     String? // select
+  confidence      Int? // 1..10
+  verbosity       Int? // 1..10 slider
+  tone            String? // select
+  accentNote      String? // free text override
+  quirks          String[] // text[]
+  vocabularyStyle String? // select
+  debateApproach  String[] // multi-select
+  conflictStyle   String? // select
+  voiceProvider   String? // select
+  voiceStyle      Json? // { pitch, speed, gendered }
+  emotionMap      String[] // multi-select
+  avatarUrl       String? // url to AI generated avatar based on persona properties
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @default(now()) @updatedAt // ✅ auto-updated whenever record changes
 
-  taxonomies      PersonaTaxonomy[]
+  taxonomies PersonaTaxonomy[]
+
+  // ✅ NEW: opposite side of DebateParticipant.persona
+  debateParticipants DebateParticipant[]
 }
 
-/// Generic taxonomy table (namespaced by `category`).
-/// Examples:
-/// - category='university', term='Harvard'
-/// - category='organization', term='UNICEF'
-/// - category='culture', term='Western Europe'
-/// - category='archetype', term='Analytical'
-/// - category='political'|'religion'|'philosophy'|'accent'
-
 model Taxonomy {
-  id        String   @id @default(uuid())
+  id        String            @id @default(uuid())
   category  String
   term      String
   slug      String?
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
+  isActive  Boolean           @default(true)
+  createdAt DateTime          @default(now())
   personas  PersonaTaxonomy[]
 
   @@unique([category, term], name: "category_term")
@@ -66,4 +61,36 @@ model PersonaTaxonomy {
 
   @@id([personaId, taxonomyId], name: "personaId_taxonomyId")
   @@index([taxonomyId])
+}
+
+model Debate {
+  id          String   @id @default(uuid())
+  title       String
+  topic       String
+  description String? // NEW: long-form explanation
+  format      String   @default("structured")
+  status      String   @default("DRAFT")
+  config      Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  participants DebateParticipant[]
+}
+
+model DebateParticipant {
+  id          String  @id @default(uuid())
+  debateId    String
+  personaId   String
+  role        String // "MODERATOR" | "DEBATER" | "HOST" | "GUEST"
+  orderIndex  Int     @default(0) // speaking/display order within the debate
+  displayName String?
+  voiceId     String?
+  meta        Json?
+
+  debate  Debate  @relation(fields: [debateId], references: [id], onDelete: Cascade)
+  persona Persona @relation(fields: [personaId], references: [id])
+
+  @@index([debateId])
+  @@index([personaId])
+  @@index([debateId, orderIndex])
 }

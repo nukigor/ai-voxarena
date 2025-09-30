@@ -41,13 +41,14 @@ model Persona {
 }
 
 model Taxonomy {
-  id        String            @id @default(uuid())
-  category  String
-  term      String
-  slug      String?
-  isActive  Boolean           @default(true)
-  createdAt DateTime          @default(now())
-  personas  PersonaTaxonomy[]
+  id          String            @id @default(uuid())
+  category    String
+  term        String
+  slug        String?
+  isActive    Boolean           @default(true)
+  description String            @default("")   // NEW field
+  createdAt   DateTime          @default(now())
+  personas    PersonaTaxonomy[]
 
   @@unique([category, term], name: "category_term")
   @@index([category])

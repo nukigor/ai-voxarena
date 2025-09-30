@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import useSWR from "swr";
 import { TextField } from "@/components/ui/forms/TextField";
@@ -12,6 +12,9 @@ import {
   type DebateFormat,
   isDebateFormat,
 } from "@/lib/debateOptions";
+import DebateParticipantsPanel, {
+  type DebateParticipantDraft,
+} from "@/components/debate/DebateParticipantsPanel";
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -31,53 +34,50 @@ export default function EditDebatePage() {
   const params = useParams<{ id: string }>();
   const debateId = params?.id;
 
-  const { data, error, isLoading } = useSWR(
-    debateId ? `/api/debates/${debateId}` : null,
-    fetcher
-  );
+  const { data, error, isLoading } = useSWR(debateId ? `/api/debates/${debateId}` : null, fetcher);
 
-  // Local form state
   const [title, setTitle] = useState("");
   const [topic, setTopic] = useState("");
   const [description, setDescription] = useState("");
-  const [format, setFormat] = useState<string>(""); // placeholder until data loads
+  const [format, setFormat] = useState<string>("");
   const [config, setConfig] = useState<any | null>(null);
-
+  const [participants, setParticipants] = useState<DebateParticipantDraft[]>([]);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  // Initialize state when data arrives
   useEffect(() => {
     if (!data) return;
     setTitle(data.title ?? "");
     setTopic(data.topic ?? "");
     setDescription(data.description ?? "");
-    setFormat(data.format ?? ""); // if empty, placeholder shows
+    setFormat(data.format ?? "");
     setConfig(data.config ?? null);
+    setParticipants(
+      (data.participants || []).map((pt: any, i: number) => ({
+        personaId: pt.personaId,
+        role: (pt.role || "") as any,
+        order: typeof pt.orderIndex === "number" ? pt.orderIndex : i,
+        persona: {
+          id: pt.persona?.id,
+          name: pt.persona?.name,
+          nickname: pt.persona?.nickname,
+          avatarUrl: pt.persona?.avatarUrl,
+          debateApproach: pt.persona?.debateApproach || [],
+          temperament: pt.persona?.temperament || null,
+          conflictStyle: pt.persona?.conflictStyle || null,
+          vocabularyStyle: pt.persona?.vocabularyStyle || null,
+        },
+      }))
+    );
   }, [data]);
 
-  // When format changes, reset config to defaults (like Create page)
   useEffect(() => {
     if (isDebateFormat(format)) {
-      // If format actually changed from the loaded value, apply defaults
-      const originalFormat: string | undefined = data?.format;
-      if (!originalFormat || originalFormat !== format) {
-        setConfig(debateConfigDefaults[format]);
-      }
+      setConfig(debateConfigDefaults[format]);
     } else {
       setConfig(null);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [format]);
-
-  const header = useMemo(
-    () => (
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Edit Debate</h1>
-      </div>
-    ),
-    []
-  );
 
   async function handleSave() {
     try {
@@ -86,7 +86,7 @@ export default function EditDebatePage() {
 
       if (!debateId) throw new Error("Missing debate id");
       if (!title || !topic) throw new Error("Title and Topic are required");
-      if (!isDebateFormat(format)) throw new Error("Please select a format");
+      if (!isDebateFormat(format)) throw new Error("Please select a Format");
 
       const res = await fetch(`/api/debates/${debateId}`, {
         method: "PUT",
@@ -95,9 +95,13 @@ export default function EditDebatePage() {
           title,
           topic,
           description,
-          format, // "structured" | "podcast"
-          config, // defaults if format changed, otherwise existing
-          // participants are edited elsewhere (not in this form)
+          format,
+          config,
+          participants: participants.map((p, i) => ({
+            personaId: p.personaId,
+            role: p.role || (format === "podcast" ? "GUEST" : "DEBATER"),
+            order: i,
+          })),
         }),
       });
 
@@ -106,53 +110,57 @@ export default function EditDebatePage() {
 
       router.push("/debates");
     } catch (e: any) {
-      setSaveError(e.message || "Failed to update debate");
+      setSaveError(e.message);
     } finally {
       setSaving(false);
     }
   }
 
-  if (isLoading) {
-    return <div className="p-6">Loading debate…</div>;
-  }
-  if (error) {
+  if (isLoading) return <div className="p-6">Loading debate…</div>;
+  if (error)
     return (
       <div className="p-6">
         <p className="text-red-600">Failed to load debate.</p>
-        <p className="mt-2 text-sm text-red-500">{String(error.message)}</p>
+        <p className="text-sm text-red-500">{String(error.message)}</p>
       </div>
     );
-  }
-  if (!data) {
-    return (
-      <div className="p-6">
-        <p className="text-red-600">Debate not found.</p>
-      </div>
-    );
-  }
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-6 space-y-6">
-      {header}
+    <div className="mx-auto max-w-6xl px-4 py-6">
+      <h1 className="mb-4 text-2xl font-bold text-gray-900 dark:text-white">Edit debate</h1>
+      {saveError && <p className="mb-4 text-red-600">{saveError}</p>}
 
-      {saveError && <p className="text-red-600">{saveError}</p>}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+        {/* Left 65% */}
+        <div className="lg:col-span-8 space-y-4">
+          <div className="rounded-xl border border-gray-200 p-5 shadow-xs dark:border-white/10">
+            <div className="space-y-4">
+              <TextField label="Title" value={title} onChange={setTitle} required />
+              <TextField label="Topic" value={topic} onChange={setTopic} required />
+              <TextAreaField label="Description" value={description} onChange={setDescription} rows={4} />
+              <SingleSelect
+                label="Format"
+                value={format}
+                onChange={setFormat}
+                options={debateFormats}
+                placeholder="Select…"
+                required
+              />
+            </div>
+          </div>
+        </div>
 
-      <div className="space-y-4">
-        <TextField label="Title" value={title} onChange={setTitle} required />
-        <TextField label="Topic" value={topic} onChange={setTopic} required />
-        <TextAreaField label="Description" value={description} onChange={setDescription} rows={4} />
-
-        <SingleSelect
-          label="Format"
-          value={format}                 // empty string -> shows placeholder
-          onChange={setFormat}
-          options={debateFormats}        // no empty option; uses placeholder
-          placeholder="Select…"
-          required
-        />
+        {/* Right 35% */}
+        <div className="lg:col-span-4">
+          <DebateParticipantsPanel
+            format={format}
+            participants={participants}
+            setParticipants={setParticipants}
+          />
+        </div>
       </div>
 
-      <div className="flex justify-end gap-3">
+      <div className="mt-6 flex justify-end gap-3">
         <button
           type="button"
           onClick={() => router.push("/debates")}

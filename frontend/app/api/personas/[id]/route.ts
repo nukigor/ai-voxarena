@@ -86,6 +86,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 /* ------------------------------- PUT ------------------------------- */
 // PUT /api/personas/:id
 // Updates scalar fields and optionally REPLACES taxonomy links if taxonomyIds is provided.
+// Extension: if taxonomyIds is NOT provided but granular taxonomy fields are present,
+//            we rebuild the taxonomy links from those fields (including `cultureIds` multi).
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
   try {
     const body = await req.json();
@@ -142,6 +144,39 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         deleteMany: {}, // replace all
         create: taxonomyIds.map((taxonomyId: string) => ({ taxonomyId })),
       };
+    } else {
+      // --- Rebuild from granular fields if present (adds `cultureIds` multi) ---
+      const archetypeIds = Array.isArray(body?.archetypeIds) ? body.archetypeIds : [];
+      const philosophyIds = Array.isArray(body?.philosophyIds) ? body.philosophyIds : [];
+      const fillerPhraseIds = Array.isArray(body?.fillerPhraseIds) ? body.fillerPhraseIds : [];
+      const metaphorIds = Array.isArray(body?.metaphorIds) ? body.metaphorIds : [];
+      const debateHabitIds = Array.isArray(body?.debateHabitIds) ? body.debateHabitIds : [];
+      const cultureIds = Array.isArray(body?.cultureIds) ? body.cultureIds : []; // ✅ NEW multi
+
+      const taxoIds: string[] = [
+        ...archetypeIds,
+        ...philosophyIds,
+        ...fillerPhraseIds,
+        ...metaphorIds,
+        ...debateHabitIds,
+        ...cultureIds,
+      ];
+
+      // Single-selects (push if present)
+      if (typeof body?.cultureId === "string" && body.cultureId) taxoIds.push(body.cultureId); // Region (single)
+      if (typeof body?.communityTypeId === "string" && body.communityTypeId) taxoIds.push(body.communityTypeId);
+      if (typeof body?.politicalId === "string" && body.politicalId) taxoIds.push(body.politicalId);
+      if (typeof body?.religionId === "string" && body.religionId) taxoIds.push(body.religionId);
+      if (typeof body?.accentId === "string" && body.accentId) taxoIds.push(body.accentId);
+      if (typeof body?.universityId === "string" && body.universityId) taxoIds.push(body.universityId);
+      if (typeof body?.employerId === "string" && body.employerId) taxoIds.push(body.employerId);
+
+      if (taxoIds.length) {
+        data.taxonomies = {
+          deleteMany: {}, // replace all
+          create: taxoIds.map((taxonomyId: string) => ({ taxonomyId })),
+        };
+      }
     }
 
     const updated = await prisma.persona.update({

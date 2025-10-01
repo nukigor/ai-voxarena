@@ -4,7 +4,6 @@ import * as React from "react";
 import { SliderField } from "@/components/ui/forms/SliderField";
 import { MultiSelect, type Option } from "@/components/ui/forms/MultiSelect";
 import { SingleSelect } from "@/components/ui/forms/SingleSelect";
-import { ExclamationCircleIcon } from "@heroicons/react/16/solid";
 import { TEMPERAMENT_OPTIONS } from "@/lib/personaOptions";
 import { TaxonomySelect } from "@/components/ui/forms/TaxonomySelect";
 
@@ -31,27 +30,31 @@ export default function PersonaCultureBeliefsStep({
   onValidityChange?: (ok: boolean) => void;
   showErrors?: boolean;
 }) {
-  // Multi-select taxonomies we still need to fetch for options:
   const [arch, setArch] = React.useState<Taxo[]>([]);
   const [philosophy, setPhilosophy] = React.useState<Taxo[]>([]);
+  const [cultures, setCultures] = React.useState<Taxo[]>([]); // Culture multi
 
   React.useEffect(() => {
     (async () => {
-      const [a, ph] = await Promise.all([fetchTaxonomy("archetype"), fetchTaxonomy("philosophy")]);
+      const [a, ph, cu] = await Promise.all([
+        fetchTaxonomy("archetype"),
+        fetchTaxonomy("philosophy"),
+        fetchTaxonomy("culture"),
+      ]);
       setArch(a || []);
       setPhilosophy(ph || []);
+      setCultures(cu || []);
     })();
   }, []);
 
-  // 👉 Default Confidence to 5 if not set; use this derived value everywhere
   const confidence = typeof data.confidence === "number" ? data.confidence : 5;
 
-  // 👉 Optional: persist default 5 into state so it’s saved consistently
+  // persist default confidence=5 so it saves consistently
   React.useEffect(() => {
     setData((p: any) => (typeof p.confidence === "number" ? p : { ...p, confidence: 5 }));
   }, [setData]);
 
-  // Required fields: archetypes>=1, temperament, confidence(0–10), cultureId, communityTypeId
+  // Required: archetypes>=1, temperament, confidence 0..10, Region (in cultureId), communityTypeId
   const valid =
     (Array.isArray(data.archetypeIds) && data.archetypeIds.length > 0) &&
     !!data.temperament &&
@@ -74,9 +77,9 @@ export default function PersonaCultureBeliefsStep({
         <MultiSelect
           label="Archetypes"
           options={toOptions(arch)}
-          valueIds={data.archetypeIds ?? []}
+          valueIds={Array.isArray(data.archetypeIds) ? data.archetypeIds : []}
           onChangeIds={(ids) => setData((p: any) => ({ ...p, archetypeIds: ids }))}
-          required
+          placeholder="Select one or more archetypes…"
           error={
             showErrors && (!Array.isArray(data.archetypeIds) || data.archetypeIds.length === 0)
               ? "Select at least one archetype."
@@ -85,11 +88,7 @@ export default function PersonaCultureBeliefsStep({
         />
 
         <SingleSelect
-          label={
-            <>
-              Temperament <span className="text-red-600">*</span>
-            </>
-          }
+          label="Temperament"
           placeholder="Select…"
           value={data?.temperament ?? null}
           onChange={(v) => setData((p: any) => ({ ...p, temperament: v }))}
@@ -116,18 +115,27 @@ export default function PersonaCultureBeliefsStep({
       <section className="space-y-4">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Cultural Background</h3>
 
-        {/* Single-select taxonomy */}
+        {/* Region (single select, taxonomy=region) */}
         <TaxonomySelect
-          category="culture"
-          label="Region / Culture"
-          valueId={data.cultureId ?? null}
+          category="region"
+          label="Region"
+          valueId={data.cultureId ?? null}  // keep storage key name for backward compatibility
           onChangeId={(id) => setData((p: any) => ({ ...p, cultureId: id }))}
           required
-          placeholder="Search or select a culture…"
-          error={showErrors && !data.cultureId ? "Culture is required." : undefined}
+          placeholder="Search or select a region…"
+          error={showErrors && !data.cultureId ? "Region is required." : undefined}
         />
 
-        {/* Single-select taxonomy */}
+        {/* Culture (multi-select, optional, taxonomy=culture) */}
+        <MultiSelect
+          label="Culture (optional)"
+          options={toOptions(cultures)}
+          valueIds={Array.isArray(data.cultureIds) ? data.cultureIds : []}
+          onChangeIds={(ids) => setData((p: any) => ({ ...p, cultureIds: ids }))}
+          placeholder="Select cultural affiliations…"
+        />
+
+        {/* Community type */}
         <TaxonomySelect
           category="communityType"
           label="Community type"
@@ -143,7 +151,6 @@ export default function PersonaCultureBeliefsStep({
       <section className="space-y-4">
         <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Beliefs & Worldview</h3>
 
-        {/* Single-select taxonomy (per your latest direction) */}
         <TaxonomySelect
           category="political"
           label="Political orientation"
@@ -152,7 +159,6 @@ export default function PersonaCultureBeliefsStep({
           placeholder="Search or select political orientation…"
         />
 
-        {/* Single-select taxonomy */}
         <TaxonomySelect
           category="religion"
           label="Religion / Spirituality"
@@ -161,7 +167,6 @@ export default function PersonaCultureBeliefsStep({
           placeholder="Search or select religion/spirituality…"
         />
 
-        {/* Multi-select taxonomy */}
         <MultiSelect
           label="Philosophical stance"
           options={toOptions(philosophy)}

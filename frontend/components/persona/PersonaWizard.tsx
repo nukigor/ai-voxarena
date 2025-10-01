@@ -49,6 +49,7 @@ function buildPayload(raw: Record<string, any>) {
     fillerPhraseIds: Array.isArray(raw.fillerPhraseIds) ? raw.fillerPhraseIds : [],
     metaphorIds: Array.isArray(raw.metaphorIds) ? raw.metaphorIds : [],
     debateHabitIds: Array.isArray(raw.debateHabitIds) ? raw.debateHabitIds : [],
+    cultureIds: Array.isArray(raw.cultureIds) ? raw.cultureIds : [],   // NEW <-- add this line
 
     // Debate approach (multi from personaOptions)
     debateApproach: Array.isArray(raw.debateApproach) ? raw.debateApproach : [],

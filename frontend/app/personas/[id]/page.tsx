@@ -17,7 +17,14 @@ function groupTaxo(persona: any) {
   return {
     universityId: first("university"),
     organizationId: first("organization"),
-    cultureId: first("culture"),
+
+    // NOTE: Region is stored in the wizard under `cultureId` (legacy key).
+    // The taxonomy category for Region is "region", so we map that here.
+    cultureId: first("region"),
+
+    // Culture is a multi-select; the wizard reads `cultureIds` for this.
+    cultureIds: byCat["culture"] ?? [],
+
     communityTypeId: first("communityType"),
     politicalId: first("political"),
     religionId: first("religion"),
@@ -52,23 +59,17 @@ export default async function EditPersonaPage({ params }: { params: { id: string
     pronouns: persona.pronouns ?? "",
     profession: persona.profession ?? "",
     temperament: persona.temperament ?? null,
-    confidence: persona.confidence ?? 5,
-    verbosity: persona.verbosity ?? 5,
+    confidence: typeof persona.confidence === "number" ? persona.confidence : 5,
+    verbosity: typeof persona.verbosity === "number" ? persona.verbosity : 5,
     tone: persona.tone ?? null,
     vocabularyStyle: persona.vocabularyStyle ?? null,
     conflictStyle: persona.conflictStyle ?? null,
-    debateApproach: persona.debateApproach ?? [],
+    debateApproach: Array.isArray(persona.debateApproach) ? persona.debateApproach : [],
     accentNote: persona.accentNote ?? "",
     quirksText: Array.isArray(persona.quirks) ? (persona.quirks[0] ?? "") : "",
-
-    // Taxonomy IDs
+    // Taxonomy-derived fields
     ...tax,
   };
 
-  return (
-    <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-2xl font-semibold mb-4">Edit Persona</h1>
-      <PersonaWizard mode="edit" personaId={persona.id} initialData={initialData} />
-    </div>
-  );
+  return <PersonaWizard initialData={initialData} />;
 }

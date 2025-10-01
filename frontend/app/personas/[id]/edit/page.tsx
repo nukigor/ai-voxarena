@@ -16,7 +16,14 @@ function groupTaxo(persona: any) {
   return {
     universityId: first("university"),
     organizationId: first("organization"),
-    cultureId: first("culture"),
+
+    // NOTE: Region is stored in the wizard under `cultureId` (legacy key).
+    // The taxonomy category for Region is "region", so we map that here.
+    cultureId: first("region"),
+
+    // Culture is a multi-select; the wizard reads `cultureIds` for this.
+    cultureIds: byCat["culture"] ?? [],
+
     communityTypeId: first("communityType"),
     politicalId: first("political"),
     religionId: first("religion"),

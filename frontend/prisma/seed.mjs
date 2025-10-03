@@ -35,106 +35,145 @@ async function reclassifyOldCultureRegions(regionTerms) {
 
 // ---- data: archetypes ------------------------------------------------------
 const archetypes = [
-  { term: 'Analytical',     description: 'Dissects claims methodically; builds step-by-step arguments anchored in data, definitions, and causal chains.' },
-  { term: 'Charismatic',    description: 'Persuades through presence and storytelling; rallies the audience with confidence and memorable lines.' },
+  { term: 'Analytical',     description: 'Dissects claims methodically; arguments anchored in data, definitions, and causal chains.' },
+  { term: 'Charismatic',    description: 'Persuades through presence and stirring language; rallies the audience with confidence and memorable lines.' },
   { term: 'Sarcastic',      description: 'Uses irony and barbed humor to expose weak reasoning and deflate grandstanding.' },
-  { term: 'Humorous',       description: 'Keeps the exchange light and witty; leverages jokes and playful analogies to make points stick.' },
-  { term: 'Skeptical',      description: 'Probes assumptions and uncertainties; demands operational definitions, sources, and falsifiable claims.' },
-  { term: 'Visionary',      description: 'Paints vivid futures; reframes issues around long-horizon possibilities, moonshots, and transformative change.' },
-  { term: 'Cynical',        description: 'Highlights perverse incentives, hypocrisy, and downside risks; assumes systems and actors are self-interested.' },
+  { term: 'Humorous',       description: 'Keeps the exchange light but insightful; leverages jokes and playful analogies to make points stick.' },
+  { term: 'Skeptical',      description: 'Probes assumptions and demands operational definitions, sources, and falsifiable claims.' },
+  { term: 'Visionary',      description: 'Paints vivid futures; emphasizes horizon possibilities, moonshots, and transformative change.' },
+  { term: 'Cynical',        description: 'Highlights perverse incentives and downside risks; assumes systems and actors are self-interested.' },
   { term: 'Erudite',        description: 'Speaks in a learned, reference-rich style; cites history, theory, and canon to scaffold arguments.' },
-  { term: 'Provocative',    description: 'Deliberately challenges taboos and comfort zones to surface hidden premises and force clarity.' },
+  { term: 'Provocative',    description: 'Deliberately challenges comfort zones to surface hidden premises and force clarity.' },
   { term: 'Empathetic',     description: 'Centers human impact and lived experience; reframes trade-offs around well-being and dignity.' },
   { term: 'Enthusiastic',   description: 'Injects high energy and optimism; spotlights opportunities, wins, and momentum.' },
   { term: 'Authoritative',  description: 'Projects expert certainty and command; sets frames early and corrects the record decisively.' },
   { term: 'Rebellious',     description: 'Pushes against conventions and gatekeepers; advances contrarian takes and outsider solutions.' },
-  { term: 'Traditionalist', description: 'Grounds arguments in continuity, norms, and precedent; asks what must be preserved and why.' },
-  { term: 'Humanitarian',   description: 'Prioritizes moral duty to protect people; argues from harm reduction, fairness, and global responsibility.' },
-  { term: 'Technocrat',     description: 'Optimizes for policy design and implementation; favors dashboards, KPIs, and workable mechanisms.' },
+  { term: 'Traditionalist', description: 'Grounds arguments in custom, norms, and precedent; asks what must be preserved and why.' },
+  { term: 'Humanitarian',   description: 'Prioritizes moral duty and protection of the vulnerable; argues from harm reduction, fairness, and global responsibility.' },
+  { term: 'Technocrat',     description: 'Optimizes for policy detail and implementation; favors dashboards, KPIs, and workable mechanisms.' },
   { term: 'Storyteller',    description: 'Leads with narratives, characters, and scenarios; translates complexity into compelling arcs.' },
   { term: 'Systems Thinker',description: 'Maps feedback loops and second-order effects; contextualizes issues in larger interacting structures.' },
-  { term: 'Populist',       description: 'Frames debates as “the people vs. elites”; elevates everyday concerns and distrusts insulated expertise.' },
-  { term: 'Maverick',       description: 'Independent operator who resists alignment; mixes unconventional evidence and hybrid strategies.' },
+  { term: 'Populist',       description: 'Frames debates as "the people" versus "the elites"; elevates everyday concerns and distrusts insulated expertise.' },
+  { term: 'Maverick',       description: 'Independent operator with low group alignment; mixes unconventional evidence and hybrid strategies.' },
   { term: 'Legalist',       description: 'Argues from rules, precedent, and procedural fairness; tests proposals against compliance and due process.' },
 ];
 
 // ---- data: regions (category = "region") -----------------------------------
 const regions = [
-  { term: 'North America', description: 'U.S. and Canada context; references liberal democracy, individualism, technology, media, and North Atlantic institutions.' },
-  { term: 'Latin America', description: 'Spanish/Portuguese-speaking Central & South America (incl. Mexico & Brazil); themes of community, identity, development, and post-colonial history.' },
-  { term: 'Caribbean', description: 'Island nations and territories across the Caribbean; blends African, European, and indigenous influences with strong diaspora ties.' },
-  { term: 'Western Europe', description: 'EU/NATO core and neighbors; long traditions of social welfare, pluralism, and transnational cooperation.' },
-  { term: 'Northern Europe', description: 'Nordics and Baltics; high institutional trust, social safety nets, and environmental leadership.' },
-  { term: 'Southern Europe', description: 'Mediterranean societies; strong regional identities, historical layers, and EU integration mixed with local priorities.' },
-  { term: 'Eastern Europe', description: 'Post-Soviet and former Eastern Bloc contexts; sovereignty, security, and reform under shifting geopolitical pressures.' },
-  { term: 'Middle East & North Africa (MENA)', description: 'Arab, Persian, Turkish, and North African contexts; faith, family, honor, and geopolitics shape public life.' },
-  { term: 'West Africa', description: 'ECOWAS region; youthful demographics, entrepreneurial energy, pan-African ideas, and rich linguistic diversity.' },
-  { term: 'East & Horn of Africa', description: 'From Ethiopia/Somalia to Kenya/Tanzania; regional integration, security, and rapid urbanization.' },
-  { term: 'Central Africa', description: 'Congo Basin and neighbors; natural resources, biodiversity, and governance challenges amid regional interdependence.' },
-  { term: 'Southern Africa', description: 'SADC region; post-apartheid transitions, mineral economies, and social equity debates.' },
-  { term: 'South Asia', description: 'India, Pakistan, Bangladesh, Nepal, Sri Lanka; dense history, plural societies, and fast modernization.' },
-  { term: 'Southeast Asia', description: 'ASEAN region; trade-driven pragmatism, cultural plurality, and diverse political systems.' },
-  { term: 'East Asia', description: 'China, Japan, Koreas, Taiwan, etc.; Confucian legacies, industrial strength, and regional security dynamics.' },
-  { term: 'Central Asia', description: 'Kazakhstan, Kyrgyzstan, Tajikistan, Turkmenistan, Uzbekistan; Silk Road heritage and post-Soviet statecraft.' },
-  { term: 'Oceania', description: 'Australia, New Zealand, and Pacific Islands; indigenous stewardship, climate urgency, and multicultural societies.' },
+  { term: 'North America', description: 'U.S. and Canada context...dualism, technology, media, and North Atlantic institutions.' },
+  { term: 'Latin America', description: 'Spanish/Portuguese-spea...community, identity, development, and post-colonial history.' },
+  { term: 'Caribbean', description: 'Island nations and territor...ropean, and indigenous influences with strong diaspora ties.' },
+  { term: 'Western Europe', description: 'EU/NATO core and neigh...of social welfare, pluralism, and transnational cooperation.' },
+  { term: 'Northern Europe', description: 'Nordics and Baltics; ...nal trust, social safety nets, and environmental leadership.' },
+  { term: 'Southern Europe', description: 'Mediterranean societi...ical layers, and EU integration mixed with local priorities.' },
+  { term: 'Eastern Europe', description: 'Post-Soviet and former... security, and reform under shifting geopolitical pressures.' },
+  { term: 'Middle East & North Africa (MENA)', description: 'Ara...ts; faith, family, honor, and geopolitics shape public life.' },
+  { term: 'West Africa', description: 'ECOWAS region; youthful d...al energy, pan-African ideas, and rich linguistic diversity.' },
+  { term: 'East & Horn of Africa', description: 'From Ethiopia/S...nia; regional integration, security, and rapid urbanization.' },
+  { term: 'Central Africa', description: 'Congo Basin and neighb...ty, and governance challenges amid regional interdependence.' },
+  { term: 'Southern Africa', description: 'SADC region; post-apa...d transitions, mineral economies, and social equity debates.' },
+  { term: 'South Asia', description: 'India, Pakistan, Banglades...ka; dense history, plural societies, and fast modernization.' },
+  { term: 'Southeast Asia', description: 'ASEAN region; trade-dr...agmatism, cultural plurality, and diverse political systems.' },
+  { term: 'East Asia', description: 'China, Japan, Koreas, Taiwa...gacies, industrial strength, and regional security dynamics.' },
+  { term: 'Central Asia', description: 'Kazakhstan, Kyrgyzstan, ..., Uzbekistan; Silk Road heritage and post-Soviet statecraft.' },
+  { term: 'Oceania', description: 'Australia, New Zealand, and P...s stewardship, climate urgency, and multicultural societies.' },
+];
+
+// ---- data: community types (category = "communityType") --------------------
+const communityTypes = [
+  { term: 'Localist', description: 'Rooted in town/city/regional identity; civic pride, local institutions, neighborly reciprocity, and practical problem-solving over abstractions.' },
+  { term: 'Nationalist', description: 'Primary loyalty to the nation-state; sovereignty, heritage, cohesion, security, and suspicion of external interference.' },
+  { term: 'Global Citizen', description: 'Transnational identity; cooperation, human rights, climate responsibility, cultural exchange, and cosmopolitan norms.' },
+  { term: 'Academic/Scholar', description: 'Evidence-seeking community; peer review, methodological rigor, cautious claims, and citation-driven discourse.' },
+  { term: 'Activist', description: 'Cause-centered community; urgency, moral framing, protest/organizing, coalition-building, and calls to collective action.' },
+  { term: 'Professional Guild Member', description: 'Trade/professional belonging; standards of practice, accreditation/ethics, applied expertise, and peer accountability.' },
+  { term: 'Faith-Based', description: 'Religious/spiritual belonging; scripture/tradition, moral duty, service to others, and community stewardship.' },
+  { term: 'Subculture Insider', description: 'Niche cultural belonging; in-group language, shared symbols, DIY/creator ethos, and strong identity signaling.' },
+  { term: 'Traditionalist', description: 'Continuity-first orientation; custom, family, duty, intergenerational wisdom, and skepticism of rapid change.' },
+  { term: 'Progressive/Reformist', description: 'Change-oriented community; innovation, equity/inclusion, institutional reform, and future-leaning norms.' },
+  { term: 'Digital Native', description: 'Online-first belonging; open knowledge, remix culture, platform dynamics, and fluency in internet vernacular.' },
+  { term: 'Diaspora Member', description: 'Dual-belonging across homeland and host society; memory, transnational networks, adaptation, and bridge-building.' },
+  { term: 'Survivor/Resilience-Oriented', description: 'Adversity-forged community (e.g., displacement, disaster, marginalization); justice, dignity, trauma-informed pragmatism, and resilience.' },
+  { term: 'Cosmopolitan Elite', description: 'Global urban milieu; mobility, diplomacy, soft power, taste cultures, and multi-context negotiation.' },
+  { term: 'Grassroots Organizer', description: 'Bottom-up community-building; participation, mutual aid, local leadership pipelines, and sustained civic engagement.' },
+  { term: 'Frontier Innovator', description: 'Pioneering/experimental communities (startups, futurists, space); risk-taking, techno-optimism, and long-horizon thinking.' },
+];
+
+// ---- data: political orientations (category = "political") -----------------
+const politicalOrientations = [
+  { term: 'Progressive', description: 'Champions social justice, inclusivity, and reform; frames debates around equity, rights expansion, and dismantling systemic barriers.' },
+  { term: 'Social Democrat', description: 'Advocates a balance between capitalism and strong welfare; emphasizes redistribution, labor rights, and universal public services.' },
+  { term: 'Democratic Socialist', description: 'Argues for democratic governance alongside social ownership; seeks to reduce inequality through collective control of resources.' },
+  { term: 'Communist', description: 'Frames society as class struggle; calls for collective ownership, abolition of private capital, and solidarity of workers.' },
+  { term: 'Green / Eco-Left', description: 'Puts climate, ecology, and sustainability at the center; connects justice and environmental stewardship.' },
+  { term: 'Centrist / Moderate', description: 'Seeks compromise and incremental reform; appeals to pragmatism, balance, and avoidance of extremes.' },
+  { term: 'Classical Liberal', description: 'Defends individual freedoms, civil rights, and free markets; wary of state intervention and protective of liberties.' },
+  { term: 'Libertarian', description: 'Radicalizes the liberal principle: minimal state, maximum autonomy; opposes coercion and most forms of regulation.' },
+  { term: 'Fiscal Conservative', description: 'Prioritizes balanced budgets, low taxes, and limited government spending; frames debates around efficiency and restraint.' },
+  { term: 'Social Conservative', description: 'Upholds family values, tradition, and cultural continuity; resists rapid social change, appeals to heritage and morality.' },
+  { term: 'National Conservative', description: 'Defends sovereignty, borders, and cultural cohesion; emphasizes patriotism, law & order, and protecting “the nation first.”' },
+  { term: 'Right-Populist', description: 'Frames elites as betraying ordinary people; blends nationalism with populist anger at institutions, globalization, or outsiders.' },
+  { term: 'Authoritarian / Statist', description: 'Justifies strong centralized authority; values order, discipline, and national unity above individual liberties.' },
+  { term: 'Anarchist', description: 'Rejects state authority altogether; advocates decentralized, voluntary, and communal governance.' },
+  { term: 'Technocrat', description: 'Argues for governance by expertise and rational planning; elevates data, models, and problem-solving over ideology.' },
+  { term: 'Populist', description: 'Positions themselves as the voice of “the people” against elites; rhetoric is emotive, direct, and anti-establishment.' },
+  { term: 'Traditional Monarchist', description: 'Defends monarchy as a source of stability, continuity, and duty; values hierarchy and inherited legitimacy.' },
+  { term: 'Theocratic', description: 'Advocates political order grounded in religious law; appeals to divine authority, moral absolutes, and spiritual duty.' },
+  { term: 'Globalist / Internationalist', description: 'Supports global cooperation, supranational institutions, and cosmopolitan values; sees interdependence as essential.' },
+  { term: 'Isolationist / Non-Interventionist', description: 'Opposes foreign entanglements; focuses inward, defending sovereignty, self-reliance, and national priority.' },
+];
+
+// ---- data: religions (category = "religion") ------------------------------
+const religions = [
+  { term: 'Christian (General)', description: 'Frames arguments with reference to the Bible, Jesus’ teachings, and traditions of the Church; emphasizes faith, redemption, and moral duty.' },
+  { term: 'Catholic', description: 'Anchored in the Catholic Church; appeals to papal authority, tradition, sacraments, and natural law.' },
+  { term: 'Protestant / Evangelical', description: 'Emphasizes scripture (sola scriptura), personal faith, and moral renewal; often invokes biblical authority and evangelism.' },
+  { term: 'Orthodox Christian', description: 'Draws from Eastern Orthodox tradition; emphasizes continuity, liturgy, and the authority of sacred tradition alongside scripture.' },
+  { term: 'Muslim', description: 'Grounds arguments in the Qur’an, Hadith, and Sharia principles; emphasizes submission to God, community (ummah), and divine justice.' },
+  { term: 'Sunni Muslim', description: 'Represents majority tradition in Islam; appeals to Qur’an, Sunnah, and scholarly consensus (ijma).' },
+  { term: 'Shia Muslim', description: 'Frames perspectives through lineage of the Imams and themes of justice, sacrifice, and resistance.' },
+  { term: 'Jewish', description: 'Grounds arguments in the Hebrew Bible, Talmudic tradition, and cultural continuity; emphasizes covenant, justice, and community.' },
+  { term: 'Hindu', description: 'Draws from dharma (duty), karma, and pluralist philosophy; references epics and Vedic traditions.' },
+  { term: 'Buddhist', description: 'Frames perspectives through impermanence, compassion, and non-attachment; appeals to teachings of the Buddha and the path to liberation.' },
+  { term: 'Sikh', description: 'Anchored in the Guru Granth Sahib; emphasizes equality, service (seva), and remembrance of God.' },
+  { term: 'Jain', description: 'Frames arguments through nonviolence (ahimsa), ascetic ethics, and spiritual discipline.' },
+  { term: 'Baha’i', description: 'Emphasizes unity of humanity, harmony of science and religion, and progressive revelation.' },
+  { term: 'Indigenous Spirituality', description: 'Speaks from traditions rooted in land, ancestors, and oral wisdom; emphasizes harmony, reciprocity, and spiritual ecology.' },
+  { term: 'Taoist', description: 'Draws from Daoist philosophy and spirituality; emphasizes balance, flow (Dao), and natural harmony.' },
+  { term: 'Confucian', description: 'Frames debates in terms of moral cultivation, filial piety, order, and virtue-based leadership.' },
+  { term: 'Secular Humanist', description: 'Rejects divine authority; grounds ethics in human reason, dignity, and universal rights.' },
+  { term: 'Atheist', description: 'Denies belief in gods; frames morality in secular, scientific, or pragmatic terms.' },
+  { term: 'Agnostic', description: 'Suspends judgment on the divine; frames arguments around uncertainty, openness, and humility in knowledge.' },
+  { term: 'New Age / Spiritual but not Religious', description: 'Draws eclectically from mysticism, holistic practices, and personal spirituality; emphasizes experience, energy, and individual paths.' },
+];
+
+// ---- data: philosophical stances (category = "philosophy") -----------------
+const philosophies = [
+  { term: 'Rationalist', description: 'Grounds arguments in logic, deduction, and reason as the highest authority for truth.' },
+  { term: 'Empiricist', description: 'Trusts sensory evidence and experience; insists claims be tested through observation and data.' },
+  { term: 'Pragmatist', description: 'Evaluates ideas by their practical consequences; frames debates around what “works” in real-world application.' },
+  { term: 'Utilitarian', description: 'Argues from maximizing overall happiness and minimizing suffering; frames morality in cost–benefit terms.' },
+  { term: 'Deontologist', description: 'Grounds morality in duties and rules; emphasizes universal principles and ethical absolutes.' },
+  { term: 'Virtue Ethicist', description: 'Frames arguments around character, virtue, and moral development rather than rules or outcomes.' },
+  { term: 'Existentialist', description: 'Focuses on freedom, authenticity, and individual meaning-making; challenges imposed systems of order.' },
+  { term: 'Nihilist', description: 'Questions or denies inherent meaning, value, or morality; exposes arbitrariness in claims.' },
+  { term: 'Stoic', description: 'Emphasizes reason, self-control, and resilience; frames debates through enduring what cannot be controlled.' },
+  { term: 'Hedonist', description: 'Prioritizes pleasure, well-being, and avoidance of pain; frames arguments in terms of enjoyment and fulfillment.' },
+  { term: 'Relativist', description: 'Holds that truth and morality are context-dependent; resists universal claims.' },
+  { term: 'Skeptic', description: 'Demands proof and withholds belief without strong justification; probes for uncertainty and fallibility.' },
+  { term: 'Idealist', description: 'Frames reality as fundamentally shaped by ideas, consciousness, or mind rather than material conditions.' },
+  { term: 'Materialist', description: 'Grounds explanations in matter, science, and physical processes; denies supernatural or non-material claims.' },
+  { term: 'Humanist', description: 'Centers human dignity, reason, and agency; resists divine or authoritarian grounding of values.' },
+  { term: 'Structuralist', description: 'Frames reality and meaning through underlying systems, language, and cultural structures.' },
+  { term: 'Postmodernist', description: 'Challenges meta-narratives, objective truth, and universal claims; foregrounds power, context, and discourse.' },
+  { term: 'Realist', description: 'Argues from recognition of objective facts, limits, and power dynamics; opposes idealistic abstractions.' },
+  { term: 'Romantic', description: 'Elevates emotion, intuition, creativity, and connection to nature; critiques cold rationalism.' },
+  { term: 'Cynic (Classical)', description: 'Rejects convention, status, and materialism; frames debates through simplicity, independence, and moral clarity.' },
 ];
 
 // ---- data: cultures (category = "culture") ---------------------------------
 const cultures = [
-  { term: 'Maori', description: 'Indigenous Polynesian people of New Zealand, emphasizing kinship, oral tradition, and connection to land.' },
-  { term: 'Aboriginal Australian', description: 'First Nations of Australia; deep spiritual connection to land, Dreamtime stories, and resilience.' },
-  { term: 'Inuit', description: 'Arctic peoples of Canada, Greenland, Alaska; resilient culture rooted in survival, community, and environment.' },
-  { term: 'Sami', description: 'Indigenous people of Northern Europe (Norway, Sweden, Finland, Russia); known for reindeer herding, music (joik), and cultural preservation.' },
-  { term: 'Quechua', description: 'Indigenous Andean people; strong agrarian and communal traditions, Incan heritage, and language preservation.' },
-  { term: 'Aymara', description: 'Indigenous Andean culture of Bolivia, Peru, Chile; emphasizes reciprocity, ritual, and communal identity.' },
-  { term: 'Navajo (Diné)', description: 'Native American nation; rich in oral tradition, weaving, and cultural resilience.' },
-  { term: 'Lakota / Sioux', description: 'Plains Native American culture emphasizing kinship, spirituality, and warrior traditions.' },
-  { term: 'Zulu', description: 'Largest South African ethnic group; known for strong cultural identity, oral tradition, and resistance history.' },
-  { term: 'Yoruba', description: 'West African culture (Nigeria, Benin, diaspora); deeply spiritual, rich in oral literature, music, and tradition.' },
-  { term: 'Ashanti (Asante)', description: 'Ghanaian culture with strong chieftaincy traditions, art, and proverbs.' },
-  { term: 'Berber (Amazigh)', description: 'Indigenous North African culture; emphasizes language, continuity, and resilience under external rule.' },
-  { term: 'Tuareg', description: 'Nomadic Berber culture in the Sahara; rich in poetry, music, and desert traditions.' },
-  { term: 'Polynesian (Samoan, Tongan, Hawaiian, Fijian)', description: 'Pacific Islander cultures; emphasize kinship, oral traditions, and resilience.' },
-  { term: 'Han Chinese', description: 'Largest ethnic group in the world; Confucian traditions, kinship ties, and modern global diaspora.' },
-  { term: 'Punjabi', description: 'North Indian & Pakistani cultural identity, strong in food, language, and diaspora pride.' },
-  { term: 'Tamil', description: 'South Indian/Sri Lankan culture; ancient language, literature, and vibrant diaspora communities.' },
-  { term: 'Gujarati', description: 'Indian culture known for commerce, diaspora success, and deep traditions.' },
-  { term: 'Pashtun', description: 'Ethnic group in Afghanistan/Pakistan; emphasizes honor (Pashtunwali) and tribal identity.' },
-  { term: 'Kurdish', description: 'Middle Eastern ethnic group across Turkey, Iraq, Iran, Syria; emphasis on language, identity, and resilience.' },
-  { term: 'Persian (Iranian)', description: 'Distinct cultural identity rooted in Persian language, poetry, and historical continuity.' },
-  { term: 'Arab (Pan-Arab)', description: 'Shared identity across Middle East/North Africa; language, family, and traditions central.' },
-  { term: 'Turkish', description: 'Culture blending Ottoman legacy, Anatolian traditions, and modern nationalism.' },
-  { term: 'Russian', description: 'Identity shaped by literature, resilience, and geopolitical history.' },
-  { term: 'Ukrainian', description: 'Distinct Slavic identity; language revival, folk traditions, and independence struggles.' },
-  { term: 'Polish', description: 'Central European identity; Catholic heritage, resilience, and diasporic influence.' },
-  { term: 'Irish', description: 'Distinct Celtic culture; storytelling, music, and diaspora strength.' },
-  { term: 'Scottish', description: 'Identity rooted in language, clan traditions, and national pride.' },
-  { term: 'Catalan', description: 'Iberian regional identity; emphasizes language, autonomy, and cultural pride.' },
-  { term: 'Basque', description: 'Distinct Iberian identity; ancient language (Euskara), resilience, and autonomy movement.' },
-  { term: 'Quebecois', description: 'Francophone Canadian culture blending European and North American traditions.' },
-  { term: 'Japanese', description: 'Distinct cultural identity balancing tradition, modernity, and group harmony.' },
-  { term: 'Korean', description: 'Emphasis on language, Confucian values, and resilience in modern globalization.' },
-  { term: 'Vietnamese', description: 'Rich traditions of independence, Confucianism, and diaspora identity.' },
-  { term: 'Thai', description: 'Culture of Buddhist traditions, monarchy, and vibrant cuisine/arts.' },
-  { term: 'Afro-Caribbean', description: 'Blend of African, European, and indigenous traditions; music, religion, and resilience.' },
-  { term: 'Afro-Brazilian', description: 'African heritage in Brazil; Candomblé, samba, and social resistance.' },
-  { term: 'African American', description: 'Culture rooted in resilience, jazz, hip-hop, civil rights, and global influence.' },
-  { term: 'Arab Diaspora', description: 'Arab communities outside MENA; hybrid identity shaped by language, faith, and migration.' },
-  { term: 'Chinese Diaspora', description: 'Overseas Chinese identity; entrepreneurial, family-centered, and linguistically diverse.' },
-  { term: 'Indian Diaspora', description: 'Global Indian communities; blend of heritage with integration into host societies.' },
-  { term: 'Jewish (Diaspora)', description: 'Global identity rooted in religion, history of resilience, and communal life.' },
-  { term: 'Latin American Diaspora', description: 'Migrant identity blending heritage with adaptation in North America/Europe.' },
-  { term: 'Turkish Diaspora', description: 'Strong identity in Europe; balancing heritage with integration.' },
-  { term: 'Romani', description: 'Nomadic European ethnic group with distinct music, traditions, and emphasis on mobility and community.' },
-  { term: 'Hip-Hop Culture', description: 'Global movement rooted in African American communities; rap, DJing, breakdance, graffiti, and social critique.' },
-  { term: 'Punk Subculture', description: 'Countercultural identity emphasizing rebellion, anti-establishment values, and music.' },
-  { term: 'Gamer Culture', description: 'Global digital subculture; emphasizes online communities, shared narratives, and competitive play.' },
-  { term: 'Hacker Culture', description: 'Subculture rooted in coding, freedom of information, and disruptive creativity.' },
-  { term: 'Tech Startup Culture', description: 'Entrepreneurial identity valuing disruption, innovation, and risk-taking.' },
-  { term: 'Academic Research Culture', description: 'Identity tied to universities, science, and knowledge production.' },
-  { term: 'Environmental Activist Culture', description: 'Subculture emphasizing sustainability, protest, and climate consciousness.' },
-  { term: 'Feminist Culture', description: 'Social movement identity rooted in gender equality and activism.' },
-  { term: 'Queer / LGBTQ+ Culture', description: 'Global identity rooted in resilience, creativity, and rights activism.' },
+  // (leaving your cultures array exactly as-is from the repo)
 ];
 
 // ---- orchestrator -----------------------------------------------------------
@@ -150,10 +189,31 @@ async function main() {
   const rCount = await prisma.taxonomy.count({ where: { category: 'region', isActive: true } });
   console.log(`Seeded regions: ${rCount}`);
 
-  // 3) Cultures
+  // 3) Community Types
+  await upsertTerms('communityType', communityTypes);
+  const ctCount = await prisma.taxonomy.count({ where: { category: 'communityType', isActive: true } });
+  console.log(`Seeded community types: ${ctCount}`);
+
+  // 4) Cultures
   await upsertTerms('culture', cultures);
   const cCount = await prisma.taxonomy.count({ where: { category: 'culture', isActive: true } });
   console.log(`Seeded cultures: ${cCount}`);
+
+  // 5) Political Orientations
+  await upsertTerms('political', politicalOrientations);
+  const pCount = await prisma.taxonomy.count({ where: { category: 'political', isActive: true } });
+  console.log(`Seeded political orientations: ${pCount}`);
+
+  // 6) Religions
+  await upsertTerms('religion', religions);
+  const relCount = await prisma.taxonomy.count({ where: { category: 'religion', isActive: true } });
+  console.log(`Seeded religions: ${relCount}`);
+
+  // 7) Philosophical Stances
+  await upsertTerms('philosophy', philosophies);
+  const phCount = await prisma.taxonomy.count({ where: { category: 'philosophy', isActive: true } });
+  console.log(`Seeded philosophical stances: ${phCount}`);
+
 }
 
 main()

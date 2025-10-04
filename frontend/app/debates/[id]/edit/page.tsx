@@ -15,6 +15,8 @@ import {
 import DebateParticipantsPanel, {
   type DebateParticipantDraft,
 } from "@/components/debate/DebateParticipantsPanel";
+import ConfirmSaveModal from "@/components/ui/ConfirmSaveModal";
+import ConfirmDiscardModal from "@/components/ui/ConfirmDiscardModal";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
@@ -34,7 +36,11 @@ export default function EditDebatePage() {
 
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [actionBusy, setActionBusy] = useState<string | null>(null); // "run" | "complete" | "archive"
+  const [actionBusy, setActionBusy] = useState<string | null>(null); // "active" | "completed" | "archived"
+
+  // confirmation modals
+  const [showConfirmSave, setShowConfirmSave] = useState(false);
+  const [showConfirmDiscard, setShowConfirmDiscard] = useState(false);
 
   useEffect(() => {
     if (!data) return;
@@ -75,13 +81,19 @@ export default function EditDebatePage() {
       const guests = roles.filter((r) => r === "GUEST").length;
       return host && guests >= 1;
     }
-    // structured
     const mod = roles.includes("MODERATOR");
     const debaters = roles.filter((r) => r === "DEBATER").length;
     return mod && debaters >= 2;
   }, [participants, format]);
 
-  async function handleSaveDraft() {
+  function onClickSaveDraft() {
+    setShowConfirmSave(true);
+  }
+  function onClickCancel() {
+    setShowConfirmDiscard(true);
+  }
+
+  async function actuallySaveDraft() {
     try {
       setSaving(true);
       setSaveError(null);
@@ -107,10 +119,12 @@ export default function EditDebatePage() {
       if (!res.ok) throw new Error(json?.error || "Failed to save");
 
       mutate();
+      router.push("/debates");
     } catch (e: any) {
       setSaveError(e.message);
     } finally {
       setSaving(false);
+      setShowConfirmSave(false);
     }
   }
 
@@ -175,61 +189,76 @@ export default function EditDebatePage() {
         </div>
       </div>
 
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={() => router.push("/debates")}
-            className="rounded-md border border-gray-300 px-3 py-2 text-sm hover:bg-gray-50 dark:border-white/10 dark:hover:bg:white/5"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleSaveDraft}
-            disabled={saving || !title || !topic || !isDebateFormat(format)}
-            className="rounded-md bg-gray-800 px-3 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50 dark:bg-gray-700 dark:hover:bg-gray-600"
-          >
-            {saving ? "Saving…" : "Save draft"}
-          </button>
+      {/* ACTION BAR — right aligned to match Create page */}
+      <div className="mt-6 flex justify-end gap-3">
+        <button
+          type="button"
+          onClick={onClickCancel}
+          className="rounded-md border border-gray-300 px-3 py-2 text-sm hover:bg-gray-50 dark:border-white/10 dark:hover:bg-white/5"
+        >
+          Cancel
+        </button>
 
-          {/* Run only from DRAFT and when min is met */}
-          <button
-            type="button"
-            onClick={() => transition("ACTIVE")}
-            disabled={status !== "DRAFT" || !meetsMinimum || actionBusy !== null}
-            title={status !== "DRAFT" ? "Only drafts can be started" : (!meetsMinimum ? "Add the minimum required personas for this format" : undefined)}
-            className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text:white hover:bg-indigo-500 disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-400"
-          >
-            {actionBusy === "active" ? "Starting…" : "Run debate"}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={onClickSaveDraft}
+          disabled={saving || !title || !topic || !isDebateFormat(format)}
+          className="rounded-md bg-gray-800 px-3 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50 dark:bg-gray-700 dark:hover:bg-gray-600"
+        >
+          Save draft
+        </button>
 
-        {/* Right-side lifecycle actions */}
-        <div className="flex gap-3">
-          {status === "ACTIVE" && (
-            <button
-              type="button"
-              onClick={() => transition("COMPLETED")}
-              disabled={actionBusy !== null}
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm hover:bg-gray-50 dark:border-white/10 dark:hover:bg-white/5"
-            >
-              {actionBusy === "completed" ? "Marking…" : "Mark completed"}
-            </button>
-          )}
-
-          {status === "COMPLETED" && (
-            <button
-              type="button"
-              onClick={() => transition("ARCHIVED")}
-              disabled={actionBusy !== null}
-              className="rounded-md border border-gray-300 px-3 py-2 text-sm hover:bg-gray-50 dark:border-white/10 dark:hover:bg-white/5"
-            >
-              {actionBusy === "archived" ? "Archiving…" : "Archive"}
-            </button>
-          )}
-        </div>
+        {/* Run only from DRAFT and when min is met */}
+        <button
+          type="button"
+          onClick={() => transition("ACTIVE")}
+          disabled={status !== "DRAFT" || !meetsMinimum || actionBusy !== null}
+          title={status !== "DRAFT" ? "Only drafts can be started" : (!meetsMinimum ? "Add the minimum required personas for this format" : undefined)}
+          className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-400"
+        >
+          {actionBusy === "active" ? "Starting…" : "Run debate"}
+        </button>
       </div>
+
+      {/* Secondary actions remain contextual (right aligned) */}
+      <div className="mt-4 flex justify-end gap-3">
+        {status === "ACTIVE" && (
+          <button
+            type="button"
+            onClick={() => transition("COMPLETED")}
+            disabled={actionBusy !== null}
+            className="rounded-md border border-gray-300 px-3 py-2 text-sm hover:bg-gray-50 dark:border-white/10 dark:hover:bg-white/5"
+          >
+            {actionBusy === "completed" ? "Marking…" : "Mark completed"}
+          </button>
+        )}
+
+        {status === "COMPLETED" && (
+          <button
+            type="button"
+            onClick={() => transition("ARCHIVED")}
+            disabled={actionBusy !== null}
+            className="rounded-md border border-gray-300 px-3 py-2 text-sm hover:bg-gray-50 dark:border-white/10 dark:hover:bg-white/5"
+          >
+            {actionBusy === "archived" ? "Archiving…" : "Archive"}
+          </button>
+        )}
+      </div>
+
+      {/* Modals */}
+      <ConfirmSaveModal
+        open={showConfirmSave}
+        title="Save draft debate?"
+        message="This will save the current draft debate to your database. You can edit it later."
+        confirmText={saving ? "Saving…" : "Save"}
+        onCancel={() => setShowConfirmSave(false)}
+        onConfirm={actuallySaveDraft}
+      />
+      <ConfirmDiscardModal
+        open={showConfirmDiscard}
+        onKeep={() => setShowConfirmDiscard(false)}
+        onDiscard={() => router.push("/debates")}
+      />
     </div>
   );
 }

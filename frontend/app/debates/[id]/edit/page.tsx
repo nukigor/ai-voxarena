@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import useSWR from "swr";
 import { TextField } from "@/components/ui/forms/TextField";
@@ -16,34 +16,25 @@ import DebateParticipantsPanel, {
   type DebateParticipantDraft,
 } from "@/components/debate/DebateParticipantsPanel";
 
-const fetcher = async (url: string) => {
-  const res = await fetch(url);
-  if (!res.ok) {
-    try {
-      const data = await res.json();
-      throw new Error(data?.error || "Failed to load");
-    } catch {
-      throw new Error(await res.text());
-    }
-  }
-  return res.json();
-};
+const fetcher = (url: string) => fetch(url).then((r) => r.json());
 
 export default function EditDebatePage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
-  const debateId = params?.id;
+  const id = params?.id as string;
 
-  const { data, error, isLoading } = useSWR(debateId ? `/api/debates/${debateId}` : null, fetcher);
+  const { data, mutate } = useSWR(id ? `/api/debates/${id}` : null, fetcher);
 
   const [title, setTitle] = useState("");
   const [topic, setTopic] = useState("");
   const [description, setDescription] = useState("");
-  const [format, setFormat] = useState<string>("");
-  const [config, setConfig] = useState<any | null>(null);
+  const [format, setFormat] = useState<DebateFormat | "">("");
+  const [config, setConfig] = useState<any>(null);
   const [participants, setParticipants] = useState<DebateParticipantDraft[]>([]);
+
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [actionBusy, setActionBusy] = useState<string | null>(null); // "run" | "complete" | "archive"
 
   useEffect(() => {
     if (!data) return;
@@ -72,30 +63,38 @@ export default function EditDebatePage() {
   }, [data]);
 
   useEffect(() => {
-    if (isDebateFormat(format)) {
-      setConfig(debateConfigDefaults[format]);
-    } else {
-      setConfig(null);
-    }
+    if (isDebateFormat(format)) setConfig(debateConfigDefaults[format]);
+    else setConfig(null);
   }, [format]);
 
-  async function handleSave() {
+  const meetsMinimum = useMemo(() => {
+    if (!isDebateFormat(format)) return false;
+    const roles = participants.map((p) => (p.role || (format === "podcast" ? "GUEST" : "DEBATER")) as string);
+    if (format === "podcast") {
+      const host = roles.includes("HOST");
+      const guests = roles.filter((r) => r === "GUEST").length;
+      return host && guests >= 1;
+    }
+    // structured
+    const mod = roles.includes("MODERATOR");
+    const debaters = roles.filter((r) => r === "DEBATER").length;
+    return mod && debaters >= 2;
+  }, [participants, format]);
+
+  async function handleSaveDraft() {
     try {
       setSaving(true);
       setSaveError(null);
 
-      if (!debateId) throw new Error("Missing debate id");
-      if (!title || !topic) throw new Error("Title and Topic are required");
-      if (!isDebateFormat(format)) throw new Error("Please select a Format");
-
-      const res = await fetch(`/api/debates/${debateId}`, {
-        method: "PUT",
+      const res = await fetch(`/api/debates/${id}`, {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title,
           topic,
           description,
-          format,
+          format: format || "structured",
+          status: "DRAFT",
           config,
           participants: participants.map((p, i) => ({
             personaId: p.personaId,
@@ -104,11 +103,10 @@ export default function EditDebatePage() {
           })),
         }),
       });
-
       const json = await res.json();
-      if (!res.ok) throw new Error(json?.error || "Failed to update debate");
+      if (!res.ok) throw new Error(json?.error || "Failed to save");
 
-      router.push("/debates");
+      mutate();
     } catch (e: any) {
       setSaveError(e.message);
     } finally {
@@ -116,18 +114,35 @@ export default function EditDebatePage() {
     }
   }
 
-  if (isLoading) return <div className="p-6">Loading debate…</div>;
-  if (error)
-    return (
-      <div className="p-6">
-        <p className="text-red-600">Failed to load debate.</p>
-        <p className="text-sm text-red-500">{String(error.message)}</p>
-      </div>
-    );
+  async function transition(nextStatus: "ACTIVE" | "COMPLETED" | "ARCHIVED") {
+    try {
+      setActionBusy(nextStatus.toLowerCase());
+      const res = await fetch(`/api/debates/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json?.error || `Failed to set ${nextStatus}`);
+      mutate();
+    } catch (e) {
+      alert((e as any).message);
+    } finally {
+      setActionBusy(null);
+    }
+  }
+
+  const status = (data?.status || "DRAFT") as "DRAFT" | "ACTIVE" | "COMPLETED" | "ARCHIVED";
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6">
-      <h1 className="mb-4 text-2xl font-bold text-gray-900 dark:text-white">Edit debate</h1>
+      <div className="mb-2 flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Edit debate</h1>
+        <span className="rounded-full border border-gray-200 px-3 py-1 text-xs uppercase tracking-wide text-gray-600 dark:border:white/10 dark:text-gray-300">
+          Status: {status}
+        </span>
+      </div>
+
       {saveError && <p className="mb-4 text-red-600">{saveError}</p>}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
@@ -160,22 +175,60 @@ export default function EditDebatePage() {
         </div>
       </div>
 
-      <div className="mt-6 flex justify-end gap-3">
-        <button
-          type="button"
-          onClick={() => router.push("/debates")}
-          className="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 dark:bg-white/10 dark:text-white dark:hover:bg-white/20"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={saving || !title || !topic || !isDebateFormat(format)}
-          className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-indigo-500 disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-400"
-        >
-          {saving ? "Saving…" : "Save"}
-        </button>
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => router.push("/debates")}
+            className="rounded-md border border-gray-300 px-3 py-2 text-sm hover:bg-gray-50 dark:border-white/10 dark:hover:bg:white/5"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSaveDraft}
+            disabled={saving || !title || !topic || !isDebateFormat(format)}
+            className="rounded-md bg-gray-800 px-3 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-50 dark:bg-gray-700 dark:hover:bg-gray-600"
+          >
+            {saving ? "Saving…" : "Save draft"}
+          </button>
+
+          {/* Run only from DRAFT and when min is met */}
+          <button
+            type="button"
+            onClick={() => transition("ACTIVE")}
+            disabled={status !== "DRAFT" || !meetsMinimum || actionBusy !== null}
+            title={status !== "DRAFT" ? "Only drafts can be started" : (!meetsMinimum ? "Add the minimum required personas for this format" : undefined)}
+            className="rounded-md bg-indigo-600 px-3 py-2 text-sm font-medium text:white hover:bg-indigo-500 disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-400"
+          >
+            {actionBusy === "active" ? "Starting…" : "Run debate"}
+          </button>
+        </div>
+
+        {/* Right-side lifecycle actions */}
+        <div className="flex gap-3">
+          {status === "ACTIVE" && (
+            <button
+              type="button"
+              onClick={() => transition("COMPLETED")}
+              disabled={actionBusy !== null}
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm hover:bg-gray-50 dark:border-white/10 dark:hover:bg-white/5"
+            >
+              {actionBusy === "completed" ? "Marking…" : "Mark completed"}
+            </button>
+          )}
+
+          {status === "COMPLETED" && (
+            <button
+              type="button"
+              onClick={() => transition("ARCHIVED")}
+              disabled={actionBusy !== null}
+              className="rounded-md border border-gray-300 px-3 py-2 text-sm hover:bg-gray-50 dark:border-white/10 dark:hover:bg-white/5"
+            >
+              {actionBusy === "archived" ? "Archiving…" : "Archive"}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

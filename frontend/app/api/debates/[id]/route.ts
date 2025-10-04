@@ -16,6 +16,7 @@ type IncomingParticipant = {
   meta?: any;
 };
 
+// normalize incoming participants payload
 function normalizeParticipants(arr: unknown): IncomingParticipant[] {
   if (!Array.isArray(arr)) return [];
   return arr
@@ -30,6 +31,31 @@ function normalizeParticipants(arr: unknown): IncomingParticipant[] {
     .filter((p) => p.personaId && p.role);
 }
 
+function validateParticipantsForFormat(format: string, participants: IncomingParticipant[]) {
+  if (format === "structured") {
+    const hasMod = participants.some((p) => p.role === "MODERATOR");
+    const debaters = participants.filter((p) => p.role === "DEBATER").length;
+    if (!hasMod || debaters < 2) {
+      return "structured debate requires 1 moderator and at least 2 debaters";
+    }
+  } else if (format === "podcast") {
+    const hasHost = participants.some((p) => p.role === "HOST");
+    const guests = participants.filter((p) => p.role === "GUEST").length;
+    if (!hasHost || guests < 1) {
+      return "podcast debate requires 1 host and at least 1 guest";
+    }
+  }
+  return null;
+}
+
+type Status = "DRAFT" | "ACTIVE" | "COMPLETED" | "ARCHIVED";
+const allowedTransitions: Record<Status, Status[]> = {
+  DRAFT: ["DRAFT", "ACTIVE"],
+  ACTIVE: ["COMPLETED"],
+  COMPLETED: ["ARCHIVED"],
+  ARCHIVED: [], // terminal
+};
+
 /* -------------------------------- GET ------------------------------ */
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
@@ -39,7 +65,18 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       participants: {
         orderBy: { orderIndex: "asc" },
         include: {
-          persona: { select: { id: true, name: true, nickname: true, avatarUrl: true, debateApproach: true, temperament: true, conflictStyle: true, vocabularyStyle: true } },
+          persona: {
+            select: {
+              id: true,
+              name: true,
+              nickname: true,
+              avatarUrl: true,
+              debateApproach: true,
+              temperament: true,
+              conflictStyle: true,
+              vocabularyStyle: true,
+            },
+          },
         },
       },
     },
@@ -48,46 +85,75 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
   return NextResponse.json(debate);
 }
 
-/* -------------------------------- PUT ------------------------------ */
+/* -------------------------------- PATCH ---------------------------- */
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {
     const body = await req.json();
 
+    // Load current for transition checks
+    const current = await prisma.debate.findUnique({
+      where: { id: params.id },
+      include: { participants: true },
+    });
+    if (!current) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
     const title = body?.title !== undefined ? normStr(body.title) : undefined;
     const topic = body?.topic !== undefined ? normStr(body.topic) : undefined;
-    const description = body?.description !== undefined ? normStr(body.description) || null : undefined;
-    const format = body?.format ? normStr(body.format).toLowerCase() : undefined;
-    const status = body?.status ? normStr(body.status).toUpperCase() : undefined;
+    const description = body?.description !== undefined ? (normStr(body.description) || null) : undefined;
+    const format = body?.format !== undefined ? normStr(body.format).toLowerCase() : undefined;
+    const status = body?.status ? (normStr(body.status).toUpperCase() as Status) : undefined;
     const config = body?.config ?? undefined;
 
     const participants = normalizeParticipants(body?.participants);
 
-    // Validate only if participants payload provided
-    if (participants.length > 0 && format) {
-      if (format === "structured") {
-        const hasMod = participants.some((p) => p.role === "MODERATOR");
-        const debaters = participants.filter((p) => p.role === "DEBATER").length;
-        if (!hasMod || debaters < 2) {
-          return NextResponse.json(
-            { error: "structured debate requires 1 moderator and at least 2 debaters" },
-            { status: 400 }
-          );
-        }
-      } else if (format === "podcast") {
-        const hasHost = participants.some((p) => p.role === "HOST");
-        const guests = participants.filter((p) => p.role === "GUEST").length;
-        if (!hasHost || guests < 1) {
-          return NextResponse.json(
-            { error: "podcast debate requires 1 host and at least 1 guest" },
-            { status: 400 }
-          );
-        }
+    // If participants provided, replace all after validating against format (use next format if provided, else current)
+    if (participants.length > 0) {
+      const f = (format || current.format || "structured").toLowerCase();
+      const err = validateParticipantsForFormat(f, participants);
+      if (err) return NextResponse.json({ error: err }, { status: 400 });
+      // replace set
+      await prisma.debateParticipant.deleteMany({ where: { debateId: current.id } });
+      await prisma.debateParticipant.createMany({
+        data: participants.map((p) => ({
+          debateId: current.id,
+          personaId: p.personaId,
+          role: p.role,
+          orderIndex: typeof p.order === "number" ? p.order : 0,
+          displayName: p.displayName ?? null,
+          voiceId: p.voiceId ?? null,
+          meta: p.meta ?? null,
+        })),
+      });
+    }
+
+    // Handle status transition rules
+    if (status) {
+      const from = (current.status || "DRAFT").toUpperCase() as Status;
+      const allowed = allowedTransitions[from] || [];
+      if (!allowed.includes(status)) {
+        return NextResponse.json(
+          { error: `Illegal status transition: ${from} → ${status}` },
+          { status: 400 }
+        );
+      }
+      // If moving into ACTIVE, enforce minimum participants based on (new) format and existing/updated participants
+      if (status === "ACTIVE") {
+        const f = (format || current.format || "structured").toLowerCase();
+        const participantsNow =
+          participants.length > 0
+            ? participants
+            : current.participants.map((p: any) => ({
+                personaId: p.personaId,
+                role: p.role as any,
+              }));
+        const err = validateParticipantsForFormat(f, participantsNow as any);
+        if (err) return NextResponse.json({ error: err }, { status: 400 });
       }
     }
 
     const updated = await prisma.debate.update({
-      where: { id: params.id },
+      where: { id: current.id },
       data: {
         title,
         topic,
@@ -95,35 +161,18 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         format,
         status,
         config,
-        ...(participants.length
-          ? {
-              participants: {
-                deleteMany: {}, // replace all
-                create: participants.map((p) => ({
-                  personaId: p.personaId,
-                  role: p.role,
-                  orderIndex: p.order ?? 0,
-                  displayName: p.displayName || null,
-                  voiceId: p.voiceId || null,
-                  meta: p.meta ?? undefined,
-                })),
-              },
-            }
-          : {}),
       },
       include: {
         participants: {
           orderBy: { orderIndex: "asc" },
-          include: {
-            persona: { select: { id: true, name: true, nickname: true, avatarUrl: true, debateApproach: true, temperament: true, conflictStyle: true, vocabularyStyle: true } },
-          },
+          include: { persona: { select: { id: true, name: true, nickname: true, avatarUrl: true } } },
         },
       },
     });
 
     return NextResponse.json(updated);
   } catch (err: any) {
-    console.error("PUT /api/debates/[id] failed:", err);
+    console.error("PATCH /api/debates/[id] failed:", err);
     return NextResponse.json({ error: err?.message ?? "Failed to update debate" }, { status: 500 });
   }
 }
@@ -132,8 +181,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
 export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
   try {
-    // Your requirement: do not delete personas; just remove their membership.
-    // Safest approach: delete participant rows first, then delete the debate.
+    // Do not delete personas; just remove their membership first, then the debate.
     await prisma.debateParticipant.deleteMany({ where: { debateId: params.id } });
     await prisma.debate.delete({ where: { id: params.id } });
     return NextResponse.json({ ok: true });

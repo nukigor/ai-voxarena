@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { generatePersonaDescription } from "@/lib/ai";
 
 /** ----------------------------- Helpers ----------------------------- */
 function normStr(x: unknown): string | null {
@@ -21,9 +22,7 @@ function normInt(x: unknown): number | null {
 }
 function normStringArray(x: unknown): string[] | null {
   if (Array.isArray(x)) {
-    const arr = x
-      .map((v) => (typeof v === "string" ? v.trim() : ""))
-      .filter(Boolean);
+    const arr = x.map((v) => (typeof v === "string" ? v.trim() : "")).filter(Boolean);
     return arr.length ? arr : [];
   }
   return null;
@@ -58,21 +57,14 @@ function deriveLegacyFields(taxonomies: Array<{ taxonomy: { id: string; category
 }
 
 /** ------------------------------- GET ------------------------------- */
-export async function GET(
-  _req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function GET(_req: Request, { params }: { params: { id: string } }) {
   try {
     const persona = await prisma.persona.findUnique({
       where: { id: params.id },
-      include: {
-        taxonomies: { include: { taxonomy: true } },
-      },
+      include: { taxonomies: { include: { taxonomy: true } } },
     });
 
-    if (!persona) {
-      return NextResponse.json({ error: "Persona not found" }, { status: 404 });
-    }
+    if (!persona) return NextResponse.json({ error: "Persona not found" }, { status: 404 });
 
     const legacy = deriveLegacyFields(persona.taxonomies as any);
     return NextResponse.json({ ...persona, ...legacy });
@@ -83,10 +75,7 @@ export async function GET(
 }
 
 /** ------------------------------- PUT ------------------------------- */
-export async function PUT(
-  req: Request,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(req: Request, { params }: { params: { id: string } }) {
   try {
     const body = await req.json();
 
@@ -126,7 +115,10 @@ export async function PUT(
           ? (body?.approach === undefined ? undefined : normStringArray(body?.approach))
           : normStringArray(body?.debateApproach),
       emotionMap: body?.emotionMap === undefined ? undefined : normStringArray(body?.emotionMap),
-      quirks: body?.quirks === undefined ? undefined : (Array.isArray(body?.quirks) ? body.quirks : []),
+      quirks:
+        body?.quirks === undefined
+          ? undefined
+          : (Array.isArray(body?.quirks) ? body.quirks : []),
     };
 
     Object.keys(data).forEach((k) => data[k] === undefined && delete data[k]);
@@ -175,7 +167,7 @@ export async function PUT(
     }
 
     // Update + replace taxonomy joins atomically
-    const [updated] = await prisma.$transaction([
+    await prisma.$transaction([
       prisma.persona.update({
         where: { id: params.id },
         data,
@@ -191,6 +183,45 @@ export async function PUT(
         : []),
     ]);
 
+    // Generate + save description (never leave it empty)
+    try {
+      const enriched = await prisma.persona.findUnique({
+        where: { id: params.id },
+        include: { taxonomies: { include: { taxonomy: true } } },
+      });
+
+      if (enriched) {
+        const expertise =
+          (enriched.taxonomies || [])
+            .map((pt: any) => pt.taxonomy?.term || pt.taxonomy?.name)
+            .filter(Boolean) ?? [];
+
+        const text = await generatePersonaDescription({
+          id: enriched.id,
+          name: enriched.name,
+          nickname: (enriched as any).nickname ?? null,
+          bio: (enriched as any).bio ?? null,
+          culturalBackground: (enriched as any).culturalBackground ?? null,
+          profession: (enriched as any).profession ?? null,
+          education: (enriched as any).education ?? null,
+          worldview: (enriched as any).worldview ?? null,
+          temperament: (enriched as any).temperament ?? null,
+          conflictStyle: (enriched as any).conflictStyle ?? null,
+          vocabularyStyle: (enriched as any).vocabularyStyle ?? null,
+          debateApproach: (enriched as any).debateApproach ?? [],
+          quirks: (enriched as any).quirks ?? [],
+          expertise,
+        });
+
+        const description = text?.trim().length ? text.trim() : "(auto) In debates, this persona balances clarity with curiosity.";
+        await prisma.persona.update({ where: { id: params.id }, data: { description } });
+        console.log("[AI] description updated for persona", params.id, `(${description.slice(0, 40)}...)`);
+      }
+    } catch (e) {
+      console.error("AI description generation failed (PUT /api/personas/[id]):", e);
+    }
+
+    // Final response (fresh)
     const persona = await prisma.persona.findUnique({
       where: { id: params.id },
       include: { taxonomies: { include: { taxonomy: true } } },

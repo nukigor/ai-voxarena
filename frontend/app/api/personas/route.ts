@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { generatePersonaDescription } from "@/lib/ai";
 
 /** ----------------------------- Helpers ----------------------------- */
 function normStr(x: unknown): string | null {
@@ -21,9 +22,7 @@ function normInt(x: unknown): number | null {
 }
 function normStringArray(x: unknown): string[] | null {
   if (Array.isArray(x)) {
-    const arr = x
-      .map((v) => (typeof v === "string" ? v.trim() : ""))
-      .filter(Boolean);
+    const arr = x.map((v) => (typeof v === "string" ? v.trim() : "")).filter(Boolean);
     return arr.length ? arr : [];
   }
   return null;
@@ -68,12 +67,7 @@ export async function GET() {
       },
     });
 
-    // Backward-compat projection so list consumers can read legacy fields
-    const projected = personas.map((p) => {
-      const legacy = deriveLegacyFields(p.taxonomies as any);
-      return { ...p, ...legacy };
-    });
-
+    const projected = personas.map((p) => ({ ...p, ...deriveLegacyFields(p.taxonomies as any) }));
     return NextResponse.json(projected);
   } catch (err: any) {
     console.error("GET /api/personas failed:", err);
@@ -88,16 +82,13 @@ export async function POST(req: Request) {
 
     // Identity
     const name = normStr(body?.name);
-    if (!name) {
-      return NextResponse.json({ error: "Name is required." }, { status: 400 });
-    }
+    if (!name) return NextResponse.json({ error: "Name is required." }, { status: 400 });
 
     const data: any = {
       name,
       nickname: body?.nickname === undefined ? undefined : normOptStr(body?.nickname),
       ageGroup: body?.ageGroup === undefined ? undefined : normOptStr(body?.ageGroup),
 
-      // Prefer new field, fall back to legacy 'gender'
       genderIdentity:
         body?.genderIdentity === undefined
           ? (body?.gender === undefined ? undefined : normOptStr(body?.gender))
@@ -105,16 +96,13 @@ export async function POST(req: Request) {
 
       pronouns: body?.pronouns === undefined ? undefined : normOptStr(body?.pronouns),
 
-      // Work/role
       profession: body?.profession === undefined ? undefined : normOptStr(body?.profession),
 
-      // Personality
       temperament: body?.temperament === undefined ? undefined : normOptStr(body?.temperament),
       confidence: body?.confidence === undefined ? undefined : normInt(body?.confidence),
       verbosity: body?.verbosity === undefined ? undefined : normInt(body?.verbosity),
       tone: body?.tone === undefined ? undefined : normOptStr(body?.tone),
 
-      // Comms & quirks
       vocabularyStyle:
         body?.vocabularyStyle === undefined
           ? (body?.vocabulary === undefined ? undefined : normOptStr(body?.vocabulary))
@@ -122,22 +110,21 @@ export async function POST(req: Request) {
       conflictStyle: body?.conflictStyle === undefined ? undefined : normOptStr(body?.conflictStyle),
       accentNote: body?.accentNote === undefined ? undefined : normOptStr(body?.accentNote),
       voiceProvider: body?.voiceProvider === undefined ? undefined : normOptStr(body?.voiceProvider),
-      voiceStyle: body?.voiceStyle === undefined ? undefined : body?.voiceStyle, // JSON pass-through
+      voiceStyle: body?.voiceStyle === undefined ? undefined : body?.voiceStyle,
 
-      // Arrays
       debateApproach:
         body?.debateApproach === undefined
           ? (body?.approach === undefined ? undefined : normStringArray(body?.approach))
           : normStringArray(body?.debateApproach),
       emotionMap: body?.emotionMap === undefined ? undefined : normStringArray(body?.emotionMap),
-      quirks: body?.quirks === undefined ? undefined : (Array.isArray(body?.quirks) ? body.quirks : []),
+      quirks:
+        body?.quirks === undefined
+          ? undefined
+          : (Array.isArray(body?.quirks) ? body.quirks : []),
     };
 
-    // Remove undefined props so Prisma uses defaults
     Object.keys(data).forEach((k) => data[k] === undefined && delete data[k]);
 
-    // --- Build taxonomy links ---
-    // Prefer explicit `taxonomyIds`, else derive from granular fields + aliases.
     let taxonomyIds: string[] | undefined = normStringArray(body?.taxonomyIds) ?? undefined;
 
     if (!taxonomyIds) {
@@ -146,17 +133,15 @@ export async function POST(req: Request) {
       const fillerPhraseIds = Array.isArray(body?.fillerPhraseIds) ? body.fillerPhraseIds : [];
       const metaphorIds = Array.isArray(body?.metaphorIds) ? body.metaphorIds : [];
       const debateHabitIds = Array.isArray(body?.debateHabitIds) ? body.debateHabitIds : [];
-      const cultureIds = Array.isArray(body?.cultureIds) ? body.cultureIds : []; // multi
+      const cultureIds = Array.isArray(body?.cultureIds) ? body.cultureIds : [];
 
-      // Single-selects (support both new and legacy keys)
       const cultureId = typeof body?.cultureId === "string" ? body.cultureId : "";
-      const regionId = typeof body?.regionId === "string" ? body.regionId : ""; // Region
+      const regionId = typeof body?.regionId === "string" ? body.regionId : "";
       const communityTypeId = typeof body?.communityTypeId === "string" ? body.communityTypeId : "";
       const politicalId = typeof body?.politicalId === "string" ? body.politicalId : "";
       const religionId = typeof body?.religionId === "string" ? body.religionId : "";
       const accentId = typeof body?.accentId === "string" ? body.accentId : "";
 
-      // Orgs/edu (support both)
       const universityId = typeof body?.universityId === "string" ? body.universityId : "";
       const organizationId = typeof body?.organizationId === "string" ? body.organizationId : "";
       const employerId = typeof body?.employerId === "string" ? body.employerId : "";
@@ -167,9 +152,9 @@ export async function POST(req: Request) {
         ...fillerPhraseIds,
         ...metaphorIds,
         ...debateHabitIds,
-        ...cultureIds, // multi culture(s)
+        ...cultureIds,
       ];
-      if (cultureId) taxoIds.push(cultureId); // legacy single culture key
+      if (cultureId) taxoIds.push(cultureId);
       if (regionId) taxoIds.push(regionId);
       if (communityTypeId) taxoIds.push(communityTypeId);
       if (politicalId) taxoIds.push(politicalId);
@@ -194,14 +179,47 @@ export async function POST(req: Request) {
       },
     });
 
-    // Project legacy fields back onto the response (for UI that still reads them)
-    const legacy = deriveLegacyFields(persona.taxonomies as any);
-    return NextResponse.json({ ...persona, ...legacy }, { status: 201 });
+    // Generate + save description (never leave it empty)
+    try {
+      const expertise =
+        (persona.taxonomies || [])
+          .map((pt: any) => pt.taxonomy?.term || pt.taxonomy?.name)
+          .filter(Boolean) ?? [];
+
+      const text = await generatePersonaDescription({
+        id: persona.id,
+        name: persona.name,
+        nickname: (persona as any).nickname ?? null,
+        bio: (persona as any).bio ?? null,
+        culturalBackground: (persona as any).culturalBackground ?? null,
+        profession: (persona as any).profession ?? null,
+        education: (persona as any).education ?? null,
+        worldview: (persona as any).worldview ?? null,
+        temperament: (persona as any).temperament ?? null,
+        conflictStyle: (persona as any).conflictStyle ?? null,
+        vocabularyStyle: (persona as any).vocabularyStyle ?? null,
+        debateApproach: (persona as any).debateApproach ?? [],
+        quirks: (persona as any).quirks ?? [],
+        expertise,
+      });
+
+      const description = text?.trim().length ? text.trim() : "(auto) In debates, this persona balances clarity with curiosity.";
+      await prisma.persona.update({ where: { id: persona.id }, data: { description } });
+      console.log("[AI] description updated for persona", persona.id, `(${description.slice(0, 40)}...)`);
+    } catch (e) {
+      console.error("AI description generation failed (POST /api/personas):", e);
+    }
+
+    // Always re-fetch so we return the description too
+    const fresh = await prisma.persona.findUnique({
+      where: { id: persona.id },
+      include: { taxonomies: { include: { taxonomy: true } } },
+    });
+
+    const legacy = deriveLegacyFields(fresh?.taxonomies as any);
+    return NextResponse.json({ ...(fresh as any), ...legacy }, { status: 201 });
   } catch (err: any) {
     console.error("POST /api/personas failed:", err);
-    return NextResponse.json(
-      { error: err?.message ?? "Failed to create persona" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: err?.message ?? "Failed to create persona" }, { status: 500 });
   }
 }

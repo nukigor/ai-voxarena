@@ -5,10 +5,10 @@ import { Bars3Icon, BellIcon, XMarkIcon } from '@heroicons/react/24/outline'
 import Image from "next/image"
 
 const navigation = [
-  { name: 'Dashboard', href: '#', current: true },
-  { name: 'Team', href: '#', current: false },
-  { name: 'Projects', href: '#', current: false },
-  { name: 'Calendar', href: '#', current: false },
+  { name: 'Debates', href: '/debates', current: true },
+  { name: 'Personas', href: '/personas', current: false },
+  { name: 'Taxonomy', href: '/taxonomy', current: false },
+  //{ name: 'Calendar', href: '#', current: false },
 ]
 
 function classNames(...classes: (string | false | null | undefined)[]) {
@@ -34,14 +34,14 @@ export default function Example() {
           </div>
           <div className="flex flex-1 items-center justify-center sm:items-stretch sm:justify-start">
             <div className="flex shrink-0 items-center">
-              <Image
+              <a href="/"><Image
                 alt="VoxArena"
                 src="/logo.svg"
                 width={96}
                 height={32}
                 className="h-8 w-auto"
                 priority
-              />
+              /></a>
             </div>
             <div className="hidden sm:ml-6 sm:block">
               <div className="flex space-x-4">

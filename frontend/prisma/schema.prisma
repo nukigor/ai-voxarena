@@ -51,8 +51,24 @@ model Taxonomy {
   createdAt   DateTime          @default(now())
   personas    PersonaTaxonomy[]
 
+
+  // --- begin: new fields for category linkage ---
+  categoryId  String?
+  taxonomyCategory  TaxonomyCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+
   @@unique([category, term], name: "category_term")
   @@index([category])
+}
+
+model TaxonomyCategory {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  fullName    String
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  taxonomy    Taxonomy[]
 }
 
 model PersonaTaxonomy {

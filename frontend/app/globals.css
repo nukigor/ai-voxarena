@@ -1,1 +1,6 @@
 @import "tailwindcss";
+
+/* Tailwind v4: declare all template sources here so JIT picks up classes */
+@source "./**/*.{js,ts,jsx,tsx}";
+@source "../components/**/*.{js,ts,jsx,tsx}";
+@source "../lib/**/*.{js,ts,jsx,tsx}";

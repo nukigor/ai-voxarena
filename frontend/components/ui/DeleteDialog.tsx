@@ -7,11 +7,21 @@ import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 type DeleteDialogProps = {
   open: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   entityName: string;
+  entityType?: string;
+  titleOverride?: string;
+  descriptionOverride?: string;
+  isLoading?: boolean;
 };
 
-export function DeleteDialog({ open, onClose, onConfirm, entityName }: DeleteDialogProps) {
+export function DeleteDialog({ open, onClose, onConfirm, entityName, entityType, titleOverride, descriptionOverride, isLoading }: DeleteDialogProps) {
+  const normalizedTypeBase = (entityType ?? "item").trim();
+  const normalizedType = normalizedTypeBase.charAt(0).toUpperCase() + normalizedTypeBase.slice(1);
+  const title = titleOverride ?? `Delete ${normalizedType}`;
+  const description = descriptionOverride ?? `Are you sure you want to delete ${entityName}? This action is permanent and cannot be undone.`;
+  const handleConfirm = async () => { await onConfirm(); };
+
   return (
     <Dialog open={open} onClose={onClose} className="relative z-10">
       <DialogBackdrop
@@ -39,29 +49,34 @@ export function DeleteDialog({ open, onClose, onConfirm, entityName }: DeleteDia
                 </div>
                 <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
                   <DialogTitle as="h3" className="text-base font-semibold text-gray-900 dark:text-white">
-                    Delete persona
+                    {title}
                   </DialogTitle>
                   <div className="mt-2">
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Are you sure you want to delete <span className="font-semibold">{entityName}</span>? 
-                      This action is permanent and cannot be undone.
+                      {description}
                     </p>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 dark:bg-gray-700/25">
+            <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6 dark:bg-gray-900">
               <button
                 type="button"
-                onClick={onConfirm}
-                className="inline-flex w-full justify-center rounded-md bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-xs hover:bg-red-500 sm:ml-3 sm:w-auto dark:bg-red-500 dark:shadow-none dark:hover:bg-red-400"
+                onClick={handleConfirm}
+                disabled={!!isLoading}
+                aria-disabled={!!isLoading}
+                className="inline-flex w-full justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm
+                           hover:bg-red-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-600
+                           sm:ml-3 sm:w-auto disabled:opacity-50"
               >
-                Delete
+                {isLoading ? "Deleting…" : "Delete"}
               </button>
               <button
                 type="button"
                 onClick={onClose}
-                className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-xs inset-ring inset-ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto dark:bg-white/10 dark:text-white dark:shadow-none dark:inset-ring-white/5 dark:hover:bg-white/20"
+                className="mt-3 inline-flex w-full justify-center rounded-md bg-white px-4 py-2 text-sm font-medium text-gray-900 shadow-sm
+                           ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500
+                           sm:mt-0 sm:w-auto dark:bg-gray-800 dark:text-white dark:ring-white/10 dark:hover:bg-white/20"
               >
                 Cancel
               </button>

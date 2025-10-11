@@ -558,6 +558,7 @@ export default function TaxonomyPage() {
         onClose={() => setDeleteOpen(false)}
         onConfirm={doDelete}
         entityName={deleteNames || "term(s)"}
+        entityType="taxonomy term"
       />
 
       {/* Add Modal */}

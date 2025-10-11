@@ -5,6 +5,7 @@ import SingleSelect from "@/components/ui/forms/SingleSelect";
 import { Pagination } from "@/components/ui/Pagination";
 import TaxonomyTabs from "@/components/taxonomy/TaxonomyTabs";
 import { DeleteDialog } from "@/components/ui/DeleteDialog";
+import TaxonomyCategorySelect from "@/components/ui/forms/TaxonomyCategorySelect";
 
 type CategoryOption = { value: string; label: string };
 
@@ -14,7 +15,7 @@ type Term = {
   slug: string | null;       // not displayed
   isActive: boolean;
   description: string;
-  category: string;          // we ensure this is filled client-side
+  category: string;          // ensured client-side
   createdAt: string;         // ISO
   updatedAt: string;         // ISO
 };
@@ -31,16 +32,6 @@ async function fetchFilterCategories(): Promise<string[]> {
   const res = await fetch("/api/taxonomy/categories", { cache: "no-store" });
   if (!res.ok) return [];
   return await res.json();
-}
-
-// TaxonomyCategory list (for Add modal)
-async function fetchCategoryFullNames(): Promise<string[]> {
-  const params = new URLSearchParams({ page: "1", pageSize: "1000" });
-  const res = await fetch(`/api/taxonomycategories?${params.toString()}`, { cache: "no-store" });
-  if (!res.ok) return [];
-  const data = await res.json();
-  // Expecting { items: [{ fullName, ... }], total, ... }
-  return Array.isArray(data?.items) ? data.items.map((x: any) => x.fullName).filter(Boolean) : [];
 }
 
 // Terms WITH category filter (uses backend pagination)
@@ -81,8 +72,7 @@ async function fetchAllTermsClientSide(
 
   // Fetch each category’s terms with a large pageSize (client-side pagination later)
   const perCategoryFetches = categories.map((cat) =>
-    // page=1, pageSize large enough (adjust if you expect >1000 terms per category)
-    fetchTermsForCategory(cat, 1, 1000)
+    fetchTermsForCategory(cat, 1, 1000) // adjust if a category can exceed 1000 terms
   );
 
   const results = await Promise.all(perCategoryFetches);
@@ -111,8 +101,6 @@ function fmtDate(iso: string) {
 export default function TaxonomyPage() {
   // Top filter categories (strings coming from existing API)
   const [filterOptions, setFilterOptions] = React.useState<CategoryOption[]>([]);
-  // Add-modal categories (from TaxonomyCategory full names)
-  const [addOptions, setAddOptions] = React.useState<CategoryOption[]>([]);
 
   // Default: no category selected -> list ALL terms
   const [category, setCategory] = React.useState<string | null>(null);
@@ -147,9 +135,9 @@ export default function TaxonomyPage() {
   const [fTerm, setFTerm] = React.useState("");
   const [fDescription, setFDescription] = React.useState("");
   const [fActive, setFActive] = React.useState(true);
-  const [fCategory, setFCategory] = React.useState<string>(""); // for Add (select), for Edit (read-only display)
+  const [fCategory, setFCategory] = React.useState<string>(""); // Add via TaxonomyCategorySelect; Edit read-only display
 
-  // Load filter options (strings) and add-modal options (TaxonomyCategory full names)
+  // Load filter options (strings) for top dropdown
   React.useEffect(() => {
     let active = true;
 
@@ -157,12 +145,6 @@ export default function TaxonomyPage() {
       if (!active) return;
       const opts = cats.map((c) => ({ value: c, label: c })) as CategoryOption[];
       setFilterOptions(opts);
-    });
-
-    fetchCategoryFullNames().then((fulls) => {
-      if (!active) return;
-      const opts = fulls.map((c) => ({ value: c, label: c })) as CategoryOption[];
-      setAddOptions(opts);
     });
 
     return () => {
@@ -183,7 +165,6 @@ export default function TaxonomyPage() {
           if (!cancelled) setData(res);
         } else {
           // List ALL terms by aggregating each category client-side
-          // Use existing filterOptions if loaded; if not yet loaded, fetch directly.
           const cats =
             filterOptions.length > 0
               ? filterOptions.map((o) => o.value)
@@ -281,7 +262,7 @@ export default function TaxonomyPage() {
     setFTerm("");
     setFDescription("");
     setFActive(true);
-    setFCategory(""); // require user selection
+    setFCategory(""); // require user selection via TaxonomyCategorySelect
     setAddOpen(true);
   }
 
@@ -305,7 +286,7 @@ export default function TaxonomyPage() {
       term: fTerm,
       description: fDescription,
       isActive: fActive,
-      category: fCategory, // full category name from TaxonomyCategory
+      category: fCategory, // full category name selected
     };
     const res = await fetch("/api/taxonomy/terms", {
       method: "POST",
@@ -591,27 +572,13 @@ export default function TaxonomyPage() {
             <div className="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl dark:bg-neutral-900 dark:text-white">
               <h3 className="text-base font-semibold leading-7">Add term</h3>
               <form onSubmit={submitAdd} className="mt-4 space-y-4">
-                {/* Category select (from TaxonomyCategory full names) */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                    Category
-                  </label>
-                  <select
-                    value={fCategory}
-                    onChange={(e) => setFCategory(e.target.value)}
-                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 dark:border-white/10 dark:bg-white/5 dark:text-gray-100"
-                    required
-                  >
-                    <option value="" disabled>
-                      Select a category
-                    </option>
-                    {addOptions.map((o) => (
-                      <option key={o.value} value={o.value}>
-                        {o.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {/* Category select (uses new TaxonomyCategorySelect) */}
+                <TaxonomyCategorySelect
+                  value={fCategory}
+                  onChange={setFCategory}
+                  placeholder="Select a category"
+                  required
+                />
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
